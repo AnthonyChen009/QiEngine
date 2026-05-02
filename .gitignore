@@ -1,2 +1,4 @@
 
 /.zed
+/build/
+compile_commands.json
