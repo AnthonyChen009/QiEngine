@@ -1,5 +1,5 @@
 add_executable(QiApp
-    main.cpp
+    SandboxApp.cpp
 )
 
-target_link_libraries(QiApp PRIVATE QiCore)
+target_link_libraries(QiApp PRIVATE QiEngine)
