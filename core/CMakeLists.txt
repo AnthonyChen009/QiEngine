@@ -10,4 +10,8 @@ target_sources(QiEngine PRIVATE
     PlatformDetection.hpp
     events/ApplicationEvent.hpp
     events/Event.hpp
+    LayerStack.cpp
+    LayerStack.hpp
+    Layer.hpp
+    Timestep.hpp
 )

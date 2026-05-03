@@ -9,10 +9,10 @@ add_library(QiEngine STATIC)
 add_subdirectory(core)
 add_subdirectory(platform)
 add_subdirectory(renderer)
+add_subdirectory(app)
 
 target_include_directories(QiEngine
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/core
         ${CMAKE_SOURCE_DIR}/platform
         ${CMAKE_SOURCE_DIR}/renderer
@@ -23,6 +23,11 @@ target_include_directories(QiEngine
 
 target_precompile_headers(QiEngine PRIVATE
     ${CMAKE_SOURCE_DIR}/include/internal/qipch.hpp
+)
+
+target_compile_definitions(QiEngine
+    PUBLIC
+        $<$<CONFIG:Debug>:QI_ENABLE_ASSERTS>
 )
 
 find_package(glfw3 REQUIRED)
