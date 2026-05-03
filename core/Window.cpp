@@ -1,4 +1,4 @@
-#include "qipch.hpp"
+#include "internal/qipch.hpp"
 #include "Window.hpp"
 
 #ifdef QI_PLATFORM_WINDOWS
@@ -13,9 +13,9 @@ namespace Qi
 {
 	Scope<Window> Window::create(const WindowProps& props) {
 	#ifdef HZ_PLATFORM_WINDOWS
-		return CreateScope<WindowsWindow>(props);
+		return createScope<WindowsWindow>(props);
 	#else
-	    return CreateScope<LinuxWindow>(props);
+	    return createScope<LinuxWindow>(props);
 	#endif
 	}
 

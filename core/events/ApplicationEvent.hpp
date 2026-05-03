@@ -1,63 +1,61 @@
 #pragma once
 
 #include "Event.hpp"
+#include <sstream>
 
 namespace Qi {
 
-	class WindowResizeEvent : public Event {
-	public:
-		WindowResizeEvent(unsigned int width, unsigned int height)
-			: m_Width(width), m_Height(height) {}
+class WindowResizeEvent : public Event {
+public:
+    WindowResizeEvent(unsigned int width, unsigned int height)
+        : m_width(width), m_height(height) {}
 
-		unsigned int GetWidth() const { return m_Width; }
-		unsigned int GetHeight() const { return m_Height; }
+    unsigned int getWidth() const { return m_width; }
+    unsigned int getHeight() const { return m_height; }
 
-		std::string ToString() const override
-		{
-			std::stringstream ss;
-			ss << "WindowResizeEvent: " << m_Width << ", " << m_Height;
-			return ss.str();
-		}
+    std::string toString() const override {
+        std::stringstream ss;
+        ss << "WindowResizeEvent: " << m_width << ", " << m_height;
+        return ss.str();
+    }
 
-		EVENT_CLASS_TYPE(WindowResize)
-		EVENT_CLASS_CATEGORY(EventCategoryApplication)
-	private:
-		unsigned int m_Width, m_Height;
-	};
+    QI_EVENT_CLASS_TYPE(WindowResize)
+    QI_EVENT_CLASS_CATEGORY(eventCategoryApplication)
 
-	class WindowCloseEvent : public Event
-	{
-	public:
-		WindowCloseEvent() = default;
+private:
+    unsigned int m_width, m_height;
+};
 
-		EVENT_CLASS_TYPE(WindowClose)
-		EVENT_CLASS_CATEGORY(EventCategoryApplication)
-	};
+class WindowCloseEvent : public Event {
+public:
+    WindowCloseEvent() = default;
 
-	class AppTickEvent : public Event
-	{
-	public:
-		AppTickEvent() = default;
+    QI_EVENT_CLASS_TYPE(WindowClose)
+    QI_EVENT_CLASS_CATEGORY(eventCategoryApplication)
+};
 
-		EVENT_CLASS_TYPE(AppTick)
-		EVENT_CLASS_CATEGORY(EventCategoryApplication)
-	};
+class AppTickEvent : public Event {
+public:
+    AppTickEvent() = default;
 
-	class AppUpdateEvent : public Event
-	{
-	public:
-		AppUpdateEvent() = default;
+    QI_EVENT_CLASS_TYPE(AppTick)
+    QI_EVENT_CLASS_CATEGORY(eventCategoryApplication)
+};
 
-		EVENT_CLASS_TYPE(AppUpdate)
-		EVENT_CLASS_CATEGORY(EventCategoryApplication)
-	};
+class AppUpdateEvent : public Event {
+public:
+    AppUpdateEvent() = default;
 
-	class AppRenderEvent : public Event
-	{
-	public:
-		AppRenderEvent() = default;
+    QI_EVENT_CLASS_TYPE(AppUpdate)
+    QI_EVENT_CLASS_CATEGORY(eventCategoryApplication)
+};
 
-		EVENT_CLASS_TYPE(AppRender)
-		EVENT_CLASS_CATEGORY(EventCategoryApplication)
-	};
+class AppRenderEvent : public Event {
+public:
+    AppRenderEvent() = default;
+
+    QI_EVENT_CLASS_TYPE(AppRender)
+    QI_EVENT_CLASS_CATEGORY(eventCategoryApplication)
+};
+
 }

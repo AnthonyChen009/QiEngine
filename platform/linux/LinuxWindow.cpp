@@ -1,6 +1,6 @@
 #include "LinuxWindow.hpp"
 #include "Window.hpp"
-#include "qipch.hpp"
+#include "internal/qipch.hpp"
 #include "events/ApplicationEvent.hpp"
 #include "Log.hpp"
 #include "Assert.hpp"
