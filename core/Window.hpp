@@ -6,14 +6,16 @@
 #include <cstdint>
 
 namespace Qi {
+    enum class GraphicsAPI {
+        None = 0,
+        OpenGL,
+        Vulkan
+    };
     struct WindowProps {
-        std::string title;
-		uint32_t width;
-		uint32_t height;
-
-		WindowProps(const std::string& title = "Qi Engine", uint32_t width = 1600, uint32_t height = 900) : title(title), width(width), height(height) {
-
-		}
+        std::string title = "Qi Engine";
+        uint32_t width = 1280;
+        uint32_t height = 720;
+        GraphicsAPI graphicsAPI = GraphicsAPI::Vulkan;
     };
     class Window {
     public:
