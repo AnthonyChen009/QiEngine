@@ -5,7 +5,7 @@
 
 namespace Qi::VulkanPlatform {
 
-const char**  getRequiredVulkanExtensions(uint32_t &count) {
+const char** getRequiredVulkanExtensions(uint32_t &count) {
     return glfwGetRequiredInstanceExtensions(&count);
 }
 

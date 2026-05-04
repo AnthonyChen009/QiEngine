@@ -68,16 +68,15 @@ void LinuxWindow::init(const WindowProps& props) {
 	glfwSetWindowUserPointer(m_window, &m_data);
 	setVSync(true);
 
-	glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int width, int height) {
-		WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-		data.width = width;
-		data.height = height;
+	glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow* window, int width, int height) {
+        WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+        data.width = width;
+        data.height = height;
 
-		WindowResizeEvent event(width, height);
-		if (data.eventCallback)
+        WindowResizeEvent event(width, height);
+        if (data.eventCallback)
             data.eventCallback(event);
-
-	});
+    });
 
 	glfwSetWindowCloseCallback(m_window, [](GLFWwindow* window) {
 		WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
@@ -116,6 +115,19 @@ void LinuxWindow::setVSync(bool enabled)
         glfwSwapInterval(enabled ? 1 : 0);
     }
 
+}
+
+void LinuxWindow::waitForValidFramebufferSize() {
+    int width = 0;
+    int height = 0;
+
+    while (width == 0 || height == 0) {
+        glfwGetFramebufferSize(m_window, &width, &height);
+        glfwWaitEvents();
+    }
+
+    m_data.width = width;
+    m_data.height = height;
 }
 
 bool LinuxWindow::isVSync() const {

@@ -16,11 +16,12 @@ public:
 
     unsigned int getWidth() const override { return m_data.width; }
 	unsigned int getHeight() const override { return m_data.height; }
+	std::string getWindowName() const override {return m_data.title;}
 
 	void setEventCallback(const EventCallbackFn& callback) override { m_data.eventCallback = callback; }
     void setVSync(bool enabled) override;
     bool isVSync() const override;
-
+    void waitForValidFramebufferSize() override;
     void* getNativeWindow() const override { return m_window; }
 
 private:

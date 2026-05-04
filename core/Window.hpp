@@ -4,6 +4,7 @@
 #include "events/Event.hpp"
 #include <sstream>
 #include <cstdint>
+#include <functional>
 
 namespace Qi {
     enum class GraphicsAPI {
@@ -28,11 +29,14 @@ namespace Qi {
 		virtual uint32_t getWidth() const = 0;
 		virtual uint32_t getHeight() const = 0;
 
+		virtual std::string getWindowName() const = 0;
+
 		virtual void setEventCallback(const EventCallbackFn& callback) = 0;
 		virtual void setVSync(bool enabled) = 0;
 		virtual bool isVSync() const = 0;
 
 		virtual void* getNativeWindow() const = 0;
+		virtual void waitForValidFramebufferSize() = 0;
 
 		static Scope<Window> create(const WindowProps& props = WindowProps());
     };
