@@ -7,6 +7,7 @@
 #include "graphicsAPI/VulkanPlatform.hpp"
 #include "Log.hpp"
 #include "Assert.hpp"
+#include <glm/glm.hpp>
 
 
 namespace Qi {
@@ -123,6 +124,9 @@ void VulkanRenderer::init(Window& window) {
     createGraphicsPipeline();
     createFrameBuffers();
     createCommandPool();
+
+    m_vertexBuffer = std::make_unique<VulkanVertexBuffer>(m_device, m_physicalDevice, vertices);
+
     createCommandBuffers();
     createSyncObjects();
 }
@@ -693,12 +697,15 @@ void VulkanRenderer::createGraphicsPipeline() {
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
 
+    VkVertexInputBindingDescription bindingDescription = Vertex::getBindingDescription();
+    std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = Vertex::getAttributeDescriptions();
+
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.pVertexBindingDescriptions = nullptr;
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -891,7 +898,9 @@ void VulkanRenderer::createSyncObjects() {
 }
 
 void VulkanRenderer::bindPipeline() {
+    QI_CORE_ASSERT(m_vertexBuffer, "Vertex buffer has not been created!");
     vkCmdBindPipeline(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+    m_vertexBuffer->bind(m_commandBuffers[m_currentFrame]);
     m_pipelineBound = true;
 }
 
@@ -961,6 +970,8 @@ void VulkanRenderer::shutdown() {
     }
 
     cleanupSwapChain();
+
+    m_vertexBuffer.reset();
 
     if (m_renderPass != VK_NULL_HANDLE) {
         vkDestroyRenderPass(m_device, m_renderPass, nullptr);

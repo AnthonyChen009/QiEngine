@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <vulkan/vulkan_core.h>
 #include <optional>
+#include "VulkanVertexBuffer.hpp"
 
 namespace Qi {
 
@@ -93,6 +94,7 @@ private:
     Window* m_window = nullptr;
     uint32_t m_winHeight;
     uint32_t m_winWidth;
+    std::unique_ptr<VulkanVertexBuffer> m_vertexBuffer;
 };
 
 }

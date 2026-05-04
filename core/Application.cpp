@@ -29,7 +29,7 @@ void Application::run() {
         if (!m_renderer->beginFrame())
             continue; // or continue
         m_renderer->bindPipeline();
-        m_renderer->draw(4);
+        m_renderer->draw(static_cast<uint32_t>(vertices.size()));
         m_renderer->endFrame();
     }
 }
