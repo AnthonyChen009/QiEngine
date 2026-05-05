@@ -25,4 +25,14 @@ void copyBuffer(
     VkDeviceSize size
 );
 
+void transitionImageLayout(
+    VkDevice device,
+    VkCommandPool commandPool,
+    VkQueue queue,
+    VkImage image,
+    VkFormat format,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout
+);
+
 }

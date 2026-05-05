@@ -5,6 +5,7 @@ target_sources(QiEngine PRIVATE
     vulkan/VulkanCommands.cpp
     vulkan/VulkanIndexBuffer.cpp
     vulkan/VulkanUniformBuffer.cpp
+    vulkan/VulkanImage.cpp
     Renderer.cpp
 
 )

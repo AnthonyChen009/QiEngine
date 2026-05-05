@@ -1,7 +1,7 @@
-[20:30:31] [error] QiEngine: Logging Init Success
-[20:30:31] [info] QIAPP: Hello World!
-[20:30:31] [info] QiEngine: Creating window Sandbox (1280, 720)
-[20:30:31] [info] QiEngine: Creating Vulkan instance
-[20:30:31] [info] QiEngine: Vulkan instance created successfully
-[20:30:31] [info] QiEngine: Working directory: /home/anthonychen/Documents/GitHub/QiEngine/assets
-[20:30:31] [info] QiEngine: Working directory: /home/anthonychen/Documents/GitHub/QiEngine/assets
+[22:11:59] [error] QiEngine: Logging Init Success
+[22:11:59] [info] QIAPP: Hello World!
+[22:11:59] [info] QiEngine: Creating window Sandbox (1280, 720)
+[22:11:59] [info] QiEngine: Creating Vulkan instance
+[22:11:59] [info] QiEngine: Vulkan instance created successfully
+[22:11:59] [info] QiEngine: Working directory: /home/anthonychen/Documents/GitHub/QiEngine/assets
+[22:11:59] [info] QiEngine: Working directory: /home/anthonychen/Documents/GitHub/QiEngine/assets

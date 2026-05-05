@@ -55,6 +55,7 @@ private:
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,  Window& window);
     void createSwapChain(Window& window);
+    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
     void createImageViews();
     void createRenderPass();
     void createGraphicsPipeline();
@@ -70,7 +71,13 @@ private:
     void createUniformBuffers();
     void createDescriptorPool();
     void createDescriptorSets();
+    void createDepthResources();
+    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+    VkFormat findDepthFormat();
+    bool hasStencilComponent(VkFormat format);
+    void createTextureImageView();
     void bindPipeline() override;
+
 private:
     const int MAX_FRAMES_IN_FLIGHT = 2;
     VkInstance m_instance = VK_NULL_HANDLE;
@@ -83,8 +90,8 @@ private:
     const std::vector<const char*> m_deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
     VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
     std::vector<VkImage> m_swapChainImages;
-    VkFormat m_swapChainImageFormat;
-    VkExtent2D m_swapChainExtent;
+    VkFormat m_swapChainImageFormat = VK_FORMAT_UNDEFINED;
+    VkExtent2D m_swapChainExtent = {0, 0};
     std::vector<VkImageView> m_swapChainImageViews;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
@@ -95,19 +102,27 @@ private:
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
     std::vector<VkFence> m_inFlightFences;
-    uint32_t m_currentImageIndex;
+    uint32_t m_currentImageIndex = 0;
     bool m_pipelineBound = false;
     uint32_t m_currentFrame = 0;
     bool m_frameBufferResized = false;
     Window* m_window = nullptr;
-    uint32_t m_winHeight;
-    uint32_t m_winWidth;
-    VkDescriptorSetLayout m_descriptorSetLayout;
+    uint32_t m_winHeight = 0;
+    uint32_t m_winWidth = 0;
+    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::unique_ptr<VulkanVertexBuffer> m_vertexBuffer;
     std::unique_ptr<VulkanIndexBuffer> m_indexBuffer;
     std::vector<std::unique_ptr<VulkanUniformBuffer>> m_uniformBuffers;
-    VkDescriptorPool m_descriptorPool;
+
     std::vector<VkDescriptorSet> m_descriptorSets;
+    VkImage m_depthImage = VK_NULL_HANDLE;
+    VkDeviceMemory m_depthImageMemory = VK_NULL_HANDLE;
+    VkImageView m_depthImageView = VK_NULL_HANDLE;
+    VkImage m_textureImage = VK_NULL_HANDLE;
+    VkDeviceMemory m_textureImageMemory = VK_NULL_HANDLE;
+    VkImageView m_textureImageView = VK_NULL_HANDLE;
+    VkSampler m_textureSampler = VK_NULL_HANDLE;
 };
 
 }
