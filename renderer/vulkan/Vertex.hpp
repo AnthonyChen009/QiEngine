@@ -9,7 +9,7 @@
 namespace Qi {
 
 struct Vertex {
-    glm::vec2 pos;
+    glm::vec3 pos;
     glm::vec3 color;
 
     static VkVertexInputBindingDescription getBindingDescription() {
@@ -25,7 +25,7 @@ struct Vertex {
 
         attributes[0].binding = 0;
         attributes[0].location = 0;
-        attributes[0].format = VK_FORMAT_R32G32_SFLOAT;
+        attributes[0].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributes[0].offset = offsetof(Vertex, pos);
 
         attributes[1].binding = 0;
@@ -38,15 +38,24 @@ struct Vertex {
 };
 
 inline const std::vector<Vertex> vertices = {
-    // first triangle
-    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}}, // bottom left
-    {{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}}, // bottom right
-    {{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}}, // top right
+    {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{ 0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 0.0f}},
 
-    // second triangle
-    {{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}}, // top right
-    {{-0.5f,  0.5f}, {1.0f, 1.0f, 0.0f}}, // top left
-    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}}  // bottom left
+    {{-0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 1.0f}},
+    {{ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f}},
+    {{ 0.5f,  0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}},
+    {{-0.5f,  0.5f,  0.5f}, {0.3f, 0.3f, 0.3f}},
 };
 
+
+inline const std::vector<uint32_t> indices = {
+    0, 1, 2, 2, 3, 0, // back
+    4, 5, 6, 6, 7, 4, // front
+    0, 4, 7, 7, 3, 0, // left
+    1, 5, 6, 6, 2, 1, // right
+    3, 2, 6, 6, 7, 3, // top
+    0, 1, 5, 5, 4, 0  // bottom
+};
 }

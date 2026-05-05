@@ -9,7 +9,7 @@ namespace Qi {
 //template<typename T>
 class VulkanVertexBuffer {
 public:
-    VulkanVertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, const std::vector<Vertex>& vertices);
+    VulkanVertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue, const std::vector<Vertex>& vertices);
     ~VulkanVertexBuffer();
     void bind(VkCommandBuffer commandBuffer);
 

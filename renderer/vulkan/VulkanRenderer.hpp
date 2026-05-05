@@ -3,9 +3,12 @@
 #include "RendererBackend.hpp"
 #include "Window.hpp"
 #include <cstdint>
+#include <memory>
 #include <vulkan/vulkan_core.h>
 #include <optional>
 #include "VulkanVertexBuffer.hpp"
+#include "VulkanIndexBuffer.hpp"
+#include "VulkanUniformBuffer.hpp"
 
 namespace Qi {
 
@@ -34,7 +37,8 @@ public:
 
     void onWindowResize(uint32_t width, uint32_t height) override;
 public:
-    void draw(uint32_t vertexCount) override;
+    void drawIndexed() override;
+    void updateUniformBuffer() override;
 private:
     void createInstance(const std::string& appName);
     void setupDebugMessenger();
@@ -62,6 +66,10 @@ private:
     void createSyncObjects();
     void recreateSwapChain();
     void cleanupSwapChain();
+    void createDescriptorSetLayout();
+    void createUniformBuffers();
+    void createDescriptorPool();
+    void createDescriptorSets();
     void bindPipeline() override;
 private:
     const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -94,7 +102,12 @@ private:
     Window* m_window = nullptr;
     uint32_t m_winHeight;
     uint32_t m_winWidth;
+    VkDescriptorSetLayout m_descriptorSetLayout;
     std::unique_ptr<VulkanVertexBuffer> m_vertexBuffer;
+    std::unique_ptr<VulkanIndexBuffer> m_indexBuffer;
+    std::vector<std::unique_ptr<VulkanUniformBuffer>> m_uniformBuffers;
+    VkDescriptorPool m_descriptorPool;
+    std::vector<VkDescriptorSet> m_descriptorSets;
 };
 
 }

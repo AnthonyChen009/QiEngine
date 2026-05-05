@@ -35,21 +35,26 @@ void Renderer::endFrame() {
     m_backend->endFrame();
 }
 
-void Renderer::draw(uint32_t vertexCount) {
-    QI_CORE_ASSERT(m_backend, "Renderer backend not initialized!");
-    m_backend->draw(vertexCount);
+void Renderer::drawQuad() {
+    m_backend->updateUniformBuffer();
+    m_backend->bindPipeline();
+    m_backend->drawIndexed();
 }
 
-void Renderer::bindPipeline() {
-    m_backend->bindPipeline();
+void Renderer::drawIndexed() {
+    QI_CORE_ASSERT(m_backend, "Renderer backend not initialized!");
+    m_backend->drawIndexed();
 }
+
 
 void Renderer::onWindowResize(uint32_t width, uint32_t height) {
     m_backend->onWindowResize(width, height);
 }
 
+
 void Renderer::shutdown() {
     m_backend->shutdown();
 }
+
 
 }

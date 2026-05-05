@@ -14,10 +14,10 @@ public:
 
     bool beginFrame();
     void endFrame();
-    void bindPipeline();
+    void drawQuad();
     void onWindowResize(uint32_t width, uint32_t height);
 
-    void draw(uint32_t vertexCount);
+    void drawIndexed();
 
 private:
     Scope<RendererBackend> m_backend;

@@ -13,9 +13,9 @@ public:
     virtual bool beginFrame() = 0;
     virtual void endFrame() = 0;
     virtual void bindPipeline() = 0;
-    virtual void draw(uint32_t vertexCount) = 0;
+    virtual void drawIndexed() = 0;
     virtual void onWindowResize(uint32_t width, uint32_t height) = 0;
-
+    virtual void updateUniformBuffer() = 0;
 };
 
 }

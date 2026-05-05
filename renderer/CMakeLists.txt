@@ -2,6 +2,9 @@ target_sources(QiEngine PRIVATE
     vulkan/VulkanRenderer.cpp
     vulkan/VulkanBuffer.cpp
     vulkan/VulkanVertexBuffer.cpp
+    vulkan/VulkanCommands.cpp
+    vulkan/VulkanIndexBuffer.cpp
+    vulkan/VulkanUniformBuffer.cpp
     Renderer.cpp
 
 )
