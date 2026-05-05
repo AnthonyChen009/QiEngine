@@ -1,5 +1,6 @@
 #include "Renderer.hpp"
 #include "vulkan/VulkanRenderer.hpp"
+#include "opengl/OpenGLRenderer.hpp"
 #include "Base.hpp"
 #include "Assert.hpp"
 
@@ -12,7 +13,7 @@ Renderer::Renderer(GraphicsAPI api) {
             break;
 
         case GraphicsAPI::OpenGL:
-            //m_backend = CreateScope<OpenGLRenderer>();
+            m_backend = createScope<OpenGLRenderer>();
             break;
         case GraphicsAPI::None:
 

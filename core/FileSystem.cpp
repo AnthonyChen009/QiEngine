@@ -2,6 +2,7 @@
 #include <fstream>
 #include <filesystem>
 #include "Log.hpp"
+#include "Assert.hpp"
 
 namespace Qi::FileSystem {
 
@@ -22,4 +23,16 @@ std::vector<char> readBinaryFile(const std::string& path) {
 
     return buffer;
 }
+
+std::string readTextFile(const std::string& path) {
+    std::ifstream file(path);
+
+    QI_CORE_ASSERT(file.is_open(), "Failed to open text file!");
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+
+    return buffer.str();
+}
+
 }

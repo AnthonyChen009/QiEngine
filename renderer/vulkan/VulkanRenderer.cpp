@@ -9,10 +9,10 @@
 #include "graphicsAPI/VulkanPlatform.hpp"
 #include "Log.hpp"
 #include "Assert.hpp"
-#include "vulkan/Vertex.hpp"
+#include "types/Vertex.hpp"
 #include <glm/glm.hpp>
 #include "VulkanCommands.hpp"
-#include "UniformBufferObject.hpp"
+#include "types/UniformBufferObject.hpp"
 
 
 namespace Qi {

@@ -3,7 +3,7 @@
 #include "Renderer.hpp"
 #include "Window.hpp"
 #include "vulkan/VulkanRenderer.hpp"
-
+#include "utils/Time.hpp"
 
 namespace Qi {
 
@@ -20,18 +20,42 @@ Application::Application(const ApplicationSpecification& specification) : m_spec
 }
 
 Application::~Application() {
-
+    m_renderer->shutdown();
 }
 
 void Application::run() {
     while (m_running) {
+
+        float time = Time::GetTime();
+        Timestep timestep = time - m_lastFrameTime;
+        m_lastFrameTime = time;
+
+        if (!m_minimized) {
+            for (Layer* layer : m_layerStack)
+                layer->onUpdate(timestep);
+
+            if (!m_renderer->beginFrame())
+                continue;
+            if (m_minimized)
+                continue;
+
+            m_renderer->drawQuad();
+            m_renderer->endFrame();
+        }
         m_window->onUpdate();
-        if (!m_renderer->beginFrame())
-            continue; // or continue
-        m_renderer->drawQuad();
-        m_renderer->endFrame();
     }
 }
+
+void Application::pushLayer(Layer* layer) {
+	m_LayerStack.pushLayer(layer);
+	layer->onAttach();
+}
+
+void Application::pushOverlay(Layer* layer) {
+	m_LayerStack.pushLayer(layer);
+	layer->onAttach();
+}
+
 void Application::onEvent(Event& e) {
 	EventDispatcher dispatcher(e);
 	dispatcher.dispatch<WindowCloseEvent>(QI_BIND_EVENT_FN(Application::onWindowClose));

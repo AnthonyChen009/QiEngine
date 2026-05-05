@@ -4,6 +4,7 @@
 #include "events/ApplicationEvent.hpp"
 #include "Log.hpp"
 #include "Assert.hpp"
+#include <GLFW/glfw3.h>
 
 namespace Qi {
 static uint8_t s_glfwWindowCount = 0;
@@ -102,9 +103,6 @@ void LinuxWindow::shutdown() {
 
 void LinuxWindow::onUpdate() {
     glfwPollEvents();
-    if (m_data.graphicsAPI == GraphicsAPI::OpenGL) {
-        glfwSwapBuffers(m_window);
-    }
 }
 
 void LinuxWindow::setVSync(bool enabled)
@@ -114,7 +112,6 @@ void LinuxWindow::setVSync(bool enabled)
 	if (m_data.graphicsAPI == GraphicsAPI::OpenGL) {
         glfwSwapInterval(enabled ? 1 : 0);
     }
-
 }
 
 void LinuxWindow::waitForValidFramebufferSize() {

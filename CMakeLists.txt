@@ -1,15 +1,20 @@
 cmake_minimum_required(VERSION 3.21)
-project(QiEngine LANGUAGES CXX)
+project(QiEngine LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(QiEngine STATIC)
+add_library(glad ${CMAKE_SOURCE_DIR}/include/external/glad/src/glad.c)
 
 add_subdirectory(core)
 add_subdirectory(platform)
 add_subdirectory(renderer)
 add_subdirectory(app)
+
+target_include_directories(glad PUBLIC
+    ${CMAKE_SOURCE_DIR}/include/external/glad/include
+)
 
 target_include_directories(QiEngine
     PUBLIC
@@ -32,6 +37,7 @@ target_compile_definitions(QiEngine
 
 find_package(glfw3 REQUIRED)
 find_package(Vulkan REQUIRED)
+find_package(OpenGL REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(glm REQUIRED)
 
@@ -42,4 +48,6 @@ target_link_libraries(QiEngine
         Vulkan::Vulkan
         spdlog::spdlog
         glm::glm
+        glad
+        OpenGL::GL
 )

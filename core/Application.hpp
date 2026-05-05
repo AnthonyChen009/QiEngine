@@ -38,6 +38,12 @@ public:
     virtual ~Application();
 
     void onEvent(Event& e);
+
+    void pushLayer(Layer* layer);
+	void pushOverlay(Layer* layer);
+
+	Window& GetWindow() { return *m_window; }
+
     const ApplicationSpecification& GetSpecification() const { return m_specification; }
 
 private:
@@ -52,6 +58,7 @@ private:
     LayerStack m_layerStack;
     float m_lastFrameTime = 0.0f;
     Scope<Renderer> m_renderer;
+    LayerStack m_LayerStack;
 private:
     friend int::main(int argc, char** argv);
 };

@@ -4,4 +4,5 @@ target_sources(QiEngine PRIVATE
     Window.cpp
     LayerStack.cpp
     FileSystem.cpp
+    utils/Time.cpp
 )
