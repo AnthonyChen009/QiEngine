@@ -5,6 +5,8 @@
 #include "OpenGLIndexBuffer.hpp"
 #include "OpenGLVertexArray.hpp"
 #include "OpenGLShader.hpp"
+#include "OpenGLUniformBuffer.hpp"
+
 namespace Qi {
 
 class OpenGLRenderer : public RendererBackend {
@@ -26,6 +28,7 @@ private:
     std::unique_ptr<OpenGLVertexBuffer> m_vertexBuffer;
     std::unique_ptr<OpenGLIndexBuffer> m_indexBuffer;
     std::unique_ptr<OpenGLShader> m_shader;
+    std::unique_ptr<OpenGLUniformBuffer> m_uniformBuffer;
 };
 
 }

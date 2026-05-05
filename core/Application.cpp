@@ -15,12 +15,12 @@ Application::Application(const ApplicationSpecification& specification) : m_spec
     m_window = Window::create(WindowProps(m_specification.name, m_specification.windowWidth, m_specification.windowHeight, m_specification.graphicsAPI));
     m_window->setEventCallback(QI_BIND_EVENT_FN(Application::onEvent));
 
-    m_renderer = createScope<Renderer>(m_specification.graphicsAPI);
-    m_renderer->init(*m_window);
+
+    Renderer::init(*m_window, m_specification.graphicsAPI);
 }
 
 Application::~Application() {
-    m_renderer->shutdown();
+    Renderer::shutdown();
 }
 
 void Application::run() {
@@ -34,38 +34,40 @@ void Application::run() {
             for (Layer* layer : m_layerStack)
                 layer->onUpdate(timestep);
 
-            if (!m_renderer->beginFrame())
+            if (!Renderer::beginFrame())
                 continue;
             if (m_minimized)
                 continue;
 
-            m_renderer->drawQuad();
-            m_renderer->endFrame();
+            Renderer::drawQuad();
+            Renderer::endFrame();
         }
         m_window->onUpdate();
     }
 }
 
 void Application::pushLayer(Layer* layer) {
-	m_LayerStack.pushLayer(layer);
+	m_layerStack.pushLayer(layer);
 	layer->onAttach();
 }
 
 void Application::pushOverlay(Layer* layer) {
-	m_LayerStack.pushLayer(layer);
+	m_layerStack.pushOverlay(layer);
 	layer->onAttach();
 }
 
-void Application::onEvent(Event& e) {
-	EventDispatcher dispatcher(e);
+void Application::onEvent(Event& event) {
+	EventDispatcher dispatcher(event);
 	dispatcher.dispatch<WindowCloseEvent>(QI_BIND_EVENT_FN(Application::onWindowClose));
 	dispatcher.dispatch<WindowResizeEvent>(QI_BIND_EVENT_FN(Application::onWindowResize));
 
-	for (auto it = m_layerStack.rbegin(); it != m_layerStack.rend(); ++it) {
-		if (e.handled)
+	for (auto it = m_layerStack.end(); it != m_layerStack.begin(); ){
+		(*--it)->onEvent(event);
+		if (event.handled)
 			break;
-		(*it)->onEvent(e);
 	}
+	if (event.handled)
+		return;
 }
 
 bool Application::onWindowClose(WindowCloseEvent& e) {
@@ -82,7 +84,7 @@ bool Application::onWindowResize(WindowResizeEvent& e) {
 
     m_minimized = false;
 
-    m_renderer->onWindowResize(e.getWidth(), e.getHeight());
+    Renderer::onWindowResize(e.getWidth(), e.getHeight());
 
     return false;
 }

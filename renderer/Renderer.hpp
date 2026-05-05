@@ -9,17 +9,18 @@ class Renderer {
 public:
     Renderer(GraphicsAPI api);
 
-    void init(Window& window);
-    void shutdown();
+    static void init(Window& window, GraphicsAPI api);
+    static void shutdown();
 
-    bool beginFrame();
-    void endFrame();
-    void drawQuad();
-    void onWindowResize(uint32_t width, uint32_t height);
+    static bool beginFrame();
+    static void endFrame();
+    static void drawQuad();
+    static void onWindowResize(uint32_t width, uint32_t height);
 
-    void drawIndexed();
+    static void drawIndexed();
 
 private:
+    static Scope<Renderer> s_instance;
     Scope<RendererBackend> m_backend;
 };
 

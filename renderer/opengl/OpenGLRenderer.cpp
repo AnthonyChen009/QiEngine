@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <memory>
 #include "FileSystem.hpp"
+#include "types/UniformBufferObject.hpp"
 
 namespace Qi {
 
@@ -25,6 +26,8 @@ void OpenGLRenderer::init(Window& window) {
     QI_CORE_ASSERT(success, "Failed to initialize GLAD!");
 
     glViewport(0, 0, window.getWidth(), window.getHeight());
+
+    glEnable(GL_DEPTH_TEST);
 
     m_vertexArray = std::make_unique<OpenGLVertexArray>();
     m_vertexArray->bind();
@@ -62,6 +65,7 @@ void OpenGLRenderer::init(Window& window) {
 
     m_shader = std::make_unique<OpenGLShader>(vertexSrc, fragmentSrc);
 
+    m_uniformBuffer = std::make_unique<OpenGLUniformBuffer>( sizeof(UniformBufferObject), 0);
     QI_CORE_INFO("OpenGL initialized");
     QI_CORE_INFO("OpenGL Vendor: {0}", reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
     QI_CORE_INFO("OpenGL Renderer: {0}", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
@@ -69,12 +73,20 @@ void OpenGLRenderer::init(Window& window) {
 }
 
 void OpenGLRenderer::shutdown() {
+    m_uniformBuffer.reset();
+    m_indexBuffer.reset();
+    m_vertexBuffer.reset();
+    m_vertexArray.reset();
+    m_shader.reset();
+
+    m_window = nullptr;
+
     QI_CORE_INFO("OpenGLRenderer shutdown");
 }
 
 bool OpenGLRenderer::beginFrame() {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     return true;
 }
@@ -107,7 +119,41 @@ void OpenGLRenderer::bindPipeline() {
 }
 
 void OpenGLRenderer::updateUniformBuffer() {
-    // Not needed yet for basic OpenGL setup
+    static auto startTime = std::chrono::high_resolution_clock::now();
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float, std::chrono::seconds::period>(
+        currentTime - startTime
+    ).count();
+
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+    UniformBufferObject ubo{};
+    ubo.model = model;
+    ubo.view = glm::lookAt(
+        glm::vec3(2.0f, 2.0f, 2.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 1.0f)
+    );
+
+    float aspect =
+        static_cast<float>(m_window->getWidth()) /
+        static_cast<float>(m_window->getHeight());
+
+    ubo.proj = glm::perspective(
+        glm::radians(45.0f),
+        aspect,
+        0.1f,
+        10.0f
+    );
+
+    // Vulkan only:
+    // ubo.proj[1][1] *= -1;
+
+    m_uniformBuffer->setData(&ubo, sizeof(ubo));
 }
 
 }

@@ -21,40 +21,41 @@ Renderer::Renderer(GraphicsAPI api) {
     }
 }
 
-void Renderer::init(Window &window) {
-    QI_CORE_ASSERT(m_backend, "Renderer backend not initialized!");
-    m_backend->init(window);
+Scope<Renderer> Renderer::s_instance = nullptr;
+
+void Renderer::init(Window &window, GraphicsAPI api) {
+    s_instance = createScope<Renderer>(api);
+    QI_CORE_ASSERT(s_instance->m_backend, "Renderer backend not initialized!");
+    s_instance->m_backend->init(window);
 }
 
 bool Renderer::beginFrame() {
-    QI_CORE_ASSERT(m_backend, "Renderer backend not initialized!");
-    return m_backend->beginFrame();
+    QI_CORE_ASSERT(s_instance->m_backend, "Renderer backend not initialized!");
+    return s_instance->m_backend->beginFrame();
 }
 
 void Renderer::endFrame() {
-    QI_CORE_ASSERT(m_backend, "Renderer backend not initialized!");
-    m_backend->endFrame();
+    QI_CORE_ASSERT(s_instance->m_backend, "Renderer backend not initialized!");
+    s_instance->m_backend->endFrame();
 }
 
 void Renderer::drawQuad() {
-    m_backend->updateUniformBuffer();
-    m_backend->bindPipeline();
-    m_backend->drawIndexed();
+    s_instance->m_backend->updateUniformBuffer();
+    s_instance->m_backend->bindPipeline();
+    s_instance->m_backend->drawIndexed();
 }
 
 void Renderer::drawIndexed() {
-    QI_CORE_ASSERT(m_backend, "Renderer backend not initialized!");
-    m_backend->drawIndexed();
+    QI_CORE_ASSERT(s_instance->m_backend, "Renderer backend not initialized!");
+    s_instance->m_backend->drawIndexed();
 }
-
 
 void Renderer::onWindowResize(uint32_t width, uint32_t height) {
-    m_backend->onWindowResize(width, height);
+    s_instance->m_backend->onWindowResize(width, height);
 }
 
-
 void Renderer::shutdown() {
-    m_backend->shutdown();
+    s_instance->m_backend->shutdown();
 }
 
 

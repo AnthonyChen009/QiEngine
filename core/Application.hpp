@@ -57,8 +57,8 @@ private:
     bool m_minimized = false;
     LayerStack m_layerStack;
     float m_lastFrameTime = 0.0f;
-    Scope<Renderer> m_renderer;
-    LayerStack m_LayerStack;
+
+
 private:
     friend int::main(int argc, char** argv);
 };

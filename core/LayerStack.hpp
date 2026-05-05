@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Base.hpp"
+#include "Assert.hpp"
 #include "Layer.hpp"
 
 #include <vector>
@@ -9,7 +9,7 @@ namespace Qi {
 
 class LayerStack {
 public:
-	LayerStack() = default;
+	LayerStack();
 	~LayerStack();
 
 	void pushLayer(Layer* layer);
@@ -17,15 +17,20 @@ public:
 	void popLayer(Layer* layer);
 	void popOverlay(Layer* overlay);
 
+	Layer* operator[](size_t index) {
+		QI_CORE_ASSERT(index >= 0 && index < m_layers.size());
+		return m_layers[index];
+	}
+
+	const Layer* operator[](size_t index) const {
+		QI_CORE_ASSERT(index >= 0 && index < m_layers.size());
+		return m_layers[index];
+	}
+
+	size_t size() const { return m_layers.size(); }
+
 	std::vector<Layer*>::iterator begin() { return m_layers.begin(); }
 	std::vector<Layer*>::iterator end() { return m_layers.end(); }
-	std::vector<Layer*>::reverse_iterator rbegin() { return m_layers.rbegin(); }
-	std::vector<Layer*>::reverse_iterator rend() { return m_layers.rend(); }
-
-	std::vector<Layer*>::const_iterator begin() const { return m_layers.begin(); }
-	std::vector<Layer*>::const_iterator end()	const { return m_layers.end(); }
-	std::vector<Layer*>::const_reverse_iterator rbegin() const { return m_layers.rbegin(); }
-	std::vector<Layer*>::const_reverse_iterator rend() const { return m_layers.rend(); }
 private:
 	std::vector<Layer*> m_layers;
 	unsigned int m_layerInsertIndex = 0;

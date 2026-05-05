@@ -1,8 +1,8 @@
-[04:04:08] [error] QiEngine: Logging Init Success
-[04:04:08] [info] QIAPP: Hello World!
-[04:04:08] [info] QiEngine: Creating window Sandbox (1280, 720)
-[04:04:08] [info] QiEngine: OpenGL initialized
-[04:04:08] [info] QiEngine: OpenGL Vendor: AMD
-[04:04:08] [info] QiEngine: OpenGL Renderer: AMD Radeon RX 7800 XT (radeonsi, navi32, ACO, DRM 3.64, 6.19.14-300.fc44.x86_64)
-[04:04:08] [info] QiEngine: OpenGL Version: 4.6 (Core Profile) Mesa 26.0.5
-[04:04:13] [info] QiEngine: OpenGLRenderer shutdown
+[05:24:29] [error] QiEngine: Logging Init Success
+[05:24:29] [info] QIAPP: Hello World!
+[05:24:29] [info] QiEngine: Creating window Sandbox (1280, 720)
+[05:24:29] [info] QiEngine: OpenGL initialized
+[05:24:29] [info] QiEngine: OpenGL Vendor: AMD
+[05:24:29] [info] QiEngine: OpenGL Renderer: AMD Radeon RX 7800 XT (radeonsi, navi32, ACO, DRM 3.64, 6.19.14-300.fc44.x86_64)
+[05:24:29] [info] QiEngine: OpenGL Version: 4.6 (Core Profile) Mesa 26.0.5
+[05:24:32] [info] QiEngine: OpenGLRenderer shutdown
