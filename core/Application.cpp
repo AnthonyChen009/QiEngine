@@ -31,15 +31,13 @@ void Application::run() {
         m_lastFrameTime = time;
 
         if (!m_minimized) {
-            for (Layer* layer : m_layerStack)
-                layer->onUpdate(timestep);
-
             if (!Renderer::beginFrame())
                 continue;
             if (m_minimized)
                 continue;
 
-            Renderer::drawQuad();
+            for (Layer* layer : m_layerStack)
+                layer->onUpdate(timestep);
             Renderer::endFrame();
         }
         m_window->onUpdate();

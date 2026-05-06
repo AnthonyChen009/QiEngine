@@ -1,13 +1,15 @@
 #include "Application.hpp"
+#include "SandboxLayer.hpp"
 #include "Window.hpp"
 #include <iostream>
 #include <QiEngine.hpp>
+#include "EntryPoint.hpp"
 #include <memory>
 
 class Sandbox : public Qi::Application {
 public:
     Sandbox(const Qi::ApplicationSpecification& specification) : Qi::Application(specification){
-
+        pushLayer(new SandboxLayer());
     }
     ~Sandbox() {
 
