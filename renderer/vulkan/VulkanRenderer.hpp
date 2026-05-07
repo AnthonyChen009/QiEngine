@@ -13,6 +13,7 @@
 #include "vulkan/VulkanInstance.hpp"
 #include "VulkanRendererInternal.hpp"
 #include "vulkan/VulkanSurface.hpp"
+#include "vulkan/VulkanSwapChain.hpp"
 
 namespace Qi {
 
@@ -41,9 +42,7 @@ private:
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,  Window& window);
-    void createSwapChain(Window& window);
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-    void createImageViews();
     void createRenderPass();
     void createGraphicsPipeline();
     VkShaderModule createShaderModule(const std::vector<char>& code);
@@ -70,12 +69,7 @@ private:
     VulkanInstance m_instance;
     std::optional<VulkanSurface> m_surface;
     std::optional<VulkanDevice> m_vulkanDevice;
-    const std::vector<const char*> m_deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-    VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
-    std::vector<VkImage> m_swapChainImages;
-    VkFormat m_swapChainImageFormat = VK_FORMAT_UNDEFINED;
-    VkExtent2D m_swapChainExtent = {0, 0};
-    std::vector<VkImageView> m_swapChainImageViews;
+    std::optional<VulkanSwapChain> m_swapChain;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;

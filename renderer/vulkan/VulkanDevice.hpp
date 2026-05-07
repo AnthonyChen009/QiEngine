@@ -3,14 +3,8 @@
 #include <vector>
 #include "VulkanSurface.hpp"
 #include "types/QueueFamilyIndices.hpp"
-
+#include "types/SwapChainSupportDetails.hpp"
 namespace Qi {
-
-struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
 
 class VulkanDevice {
 public:
@@ -29,7 +23,6 @@ private:
     bool isDeviceSuitable(VkPhysicalDevice device) const;
     int rateDevice(VkPhysicalDevice device) const;
     bool checkDeviceExtensionSupport(VkPhysicalDevice device) const;
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) const;
     VkInstance m_instance = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;

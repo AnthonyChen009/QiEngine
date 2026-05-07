@@ -2,6 +2,7 @@
 
 #include <optional>
 #include "cstdint"
+#include "vulkan/vulkan.h"
 
 namespace Qi {
 struct QueueFamilyIndices {
