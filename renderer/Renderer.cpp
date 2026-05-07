@@ -60,6 +60,7 @@ RendererBackend* Renderer::getBackend() {
 
 void Renderer::shutdown() {
     s_instance->m_backend->shutdown();
+    s_instance->m_backend.reset();
 }
 
 

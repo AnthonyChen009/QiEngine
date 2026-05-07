@@ -9,23 +9,12 @@
 #include "VulkanVertexBuffer.hpp"
 #include "VulkanIndexBuffer.hpp"
 #include "VulkanUniformBuffer.hpp"
+#include "vulkan/VulkanDevice.hpp"
+#include "vulkan/VulkanInstance.hpp"
+#include "VulkanRendererInternal.hpp"
+#include "vulkan/VulkanSurface.hpp"
 
 namespace Qi {
-
-struct QueueFamilyIndices {
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool isComplete() {
-        return graphicsFamily.has_value();
-    }
-};
-
-struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
 
 class VulkanRenderer : public RendererBackend {
 public:
@@ -42,12 +31,9 @@ public:
     void pushConstants(const PushConstant2D& push) override;
 private:
     void createInstance(const std::string& appName);
-    void setupDebugMessenger();
-    void createSurface(Window& window);
     void pickPhysicalDevice();
     int rateDevice(VkPhysicalDevice device);
     bool isDeviceSuitable(VkPhysicalDevice device);
-    void createLogicalDevice();
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
@@ -81,13 +67,9 @@ private:
 
 private:
     const int MAX_FRAMES_IN_FLIGHT = 2;
-    VkInstance m_instance = VK_NULL_HANDLE;
-    VkSurfaceKHR m_surface = VK_NULL_HANDLE;
-    VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
-    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-    VkDevice m_device = VK_NULL_HANDLE;
-    VkQueue m_graphicsQueue = VK_NULL_HANDLE;
-    VkQueue m_presentQueue = VK_NULL_HANDLE;
+    VulkanInstance m_instance;
+    std::optional<VulkanSurface> m_surface;
+    std::optional<VulkanDevice> m_vulkanDevice;
     const std::vector<const char*> m_deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
     VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
     std::vector<VkImage> m_swapChainImages;
