@@ -37,8 +37,9 @@ public:
 
     void onWindowResize(uint32_t width, uint32_t height) override;
 public:
-    void drawIndexed() override;
+    void drawIndexed(uint32_t count) override;
     void updateUniformBuffer() override;
+    void pushConstants(const PushConstant2D& push) override;
 private:
     void createInstance(const std::string& appName);
     void setupDebugMessenger();

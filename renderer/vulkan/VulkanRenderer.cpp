@@ -13,7 +13,7 @@
 #include <glm/glm.hpp>
 #include "VulkanCommands.hpp"
 #include "types/UniformBufferObject.hpp"
-
+#include "types/PushConstants.hpp"
 
 namespace Qi {
 
@@ -236,7 +236,7 @@ void VulkanRenderer::onWindowResize(uint32_t width, uint32_t height) {
 
 }
 
-void VulkanRenderer::drawIndexed()  {
+void VulkanRenderer::drawIndexed(uint32_t count)  {
     QI_CORE_ASSERT(m_pipelineBound, "Cannot draw before binding a graphics pipeline!");
     QI_CORE_ASSERT(m_indexBuffer, "Index buffer has not been created!");
 
@@ -779,12 +779,17 @@ void VulkanRenderer::createGraphicsPipeline() {
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(PushConstant2D);
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-    pipelineLayoutInfo.pPushConstantRanges = nullptr;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
     VkResult layoutResult = vkCreatePipelineLayout(
         m_device,
@@ -1013,21 +1018,13 @@ void VulkanRenderer::createUniformBuffers() {
 }
 
 void VulkanRenderer::updateUniformBuffer() {
-    static auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
     UniformBufferObject ubo{};
-    ubo.model = model;
-    ubo.view = glm::lookAt(glm::vec3(0.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    float aspect = static_cast<float>(m_swapChainExtent.width) / static_cast<float>(m_swapChainExtent.height);
-    ubo.proj = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 10.0f);
+    ubo.model = glm::mat4(1.0f);
+    ubo.view = glm::mat4(1.0f);
+    float width = static_cast<float>(m_swapChainExtent.width);
+    float height = static_cast<float>(m_swapChainExtent.height);
+    ubo.proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f, -1.0f, 1.0f);
     ubo.proj[1][1] *= -1;
-
     m_uniformBuffers[m_currentFrame]->setData(&ubo, sizeof(ubo));
 }
 
@@ -1121,6 +1118,17 @@ void VulkanRenderer::createTextureImageView() {
         m_textureImage,
         VK_FORMAT_R8G8B8A8_SRGB,
         VK_IMAGE_ASPECT_COLOR_BIT
+    );
+}
+
+void VulkanRenderer::pushConstants(const PushConstant2D& push) {
+    vkCmdPushConstants(
+        m_commandBuffers[m_currentFrame],
+        m_pipelineLayout,
+        VK_SHADER_STAGE_VERTEX_BIT,
+        0,
+        sizeof(PushConstant2D),
+        &push
     );
 }
 

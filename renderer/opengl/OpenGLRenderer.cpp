@@ -102,7 +102,7 @@ void OpenGLRenderer::onWindowResize(uint32_t width, uint32_t height) {
     glViewport(0, 0, width, height);
 }
 
-void OpenGLRenderer::drawIndexed() {
+void OpenGLRenderer::drawIndexed(uint32_t count) {
     m_shader->bind();
     m_vertexArray->bind();
 
@@ -115,6 +115,10 @@ void OpenGLRenderer::drawIndexed() {
 }
 
 void OpenGLRenderer::bindPipeline() {
+
+}
+
+void OpenGLRenderer::pushConstants(const PushConstant2D& push) {
 
 }
 

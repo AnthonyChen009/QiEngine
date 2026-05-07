@@ -19,9 +19,10 @@ public:
 
     void onWindowResize(uint32_t width, uint32_t height) override;
 public:
-    void drawIndexed() override;
+    void drawIndexed(uint32_t count) override;
     void updateUniformBuffer() override;
     void bindPipeline() override;
+    void pushConstants(const PushConstant2D& push) override;
 private:
     Window* m_window = nullptr;
     std::unique_ptr<OpenGLVertexArray> m_vertexArray;

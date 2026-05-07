@@ -42,16 +42,20 @@ void Renderer::endFrame() {
 void Renderer::drawQuad() {
     s_instance->m_backend->updateUniformBuffer();
     s_instance->m_backend->bindPipeline();
-    s_instance->m_backend->drawIndexed();
+    s_instance->m_backend->drawIndexed(6);
 }
 
 void Renderer::drawIndexed() {
     QI_CORE_ASSERT(s_instance->m_backend, "Renderer backend not initialized!");
-    s_instance->m_backend->drawIndexed();
+    s_instance->m_backend->drawIndexed(6);
 }
 
 void Renderer::onWindowResize(uint32_t width, uint32_t height) {
     s_instance->m_backend->onWindowResize(width, height);
+}
+
+RendererBackend* Renderer::getBackend() {
+    return s_instance->m_backend.get();
 }
 
 void Renderer::shutdown() {

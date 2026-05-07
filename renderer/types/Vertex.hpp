@@ -38,22 +38,14 @@ struct Vertex {
 };
 
 inline const std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{ 0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{ 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
-    {{-0.5f, -0.5f,  0.5f}, {1.0f, 1.0f, 0.0f}},
-    {{ 0.0f,  0.5f,  0.0f}, {1.0f, 1.0f, 1.0f}},
+    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+    {{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+    {{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f,  0.5f, 0.0f}, {1.0f, 1.0f, 0.0f}},
 };
 
 inline const std::vector<uint32_t> indices = {
-    // base, outside faces downward
     0, 1, 2,
-    0, 2, 3,
-
-    // sides, outside faces outward
-    0, 4, 1,
-    1, 4, 2,
-    2, 4, 3,
-    3, 4, 0,
+    2, 3, 0
 };
 }
