@@ -32,6 +32,18 @@ void VulkanRenderer::init(Window& window) {
     createCommandBuffers();
     createSyncObjects();
     createDescriptorSets();
+    //log
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(m_vulkanDevice->getPhysicalDevice(), &properties);
+
+    QI_CORE_INFO("Vulkan initialized");
+    QI_CORE_INFO("GPU: {0}", properties.deviceName);
+    QI_CORE_INFO("Vulkan API Version: {0}.{1}.{2}",
+        VK_VERSION_MAJOR(properties.apiVersion),
+        VK_VERSION_MINOR(properties.apiVersion),
+        VK_VERSION_PATCH(properties.apiVersion));
+
+    QI_CORE_INFO("Driver Version: {0}", properties.driverVersion);
 }
 
 bool VulkanRenderer::beginFrame() {
