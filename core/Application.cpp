@@ -4,6 +4,8 @@
 #include "Window.hpp"
 #include "vulkan/VulkanRenderer.hpp"
 #include "utils/Time.hpp"
+#include "Renderer.hpp"
+#include "Renderer2D.hpp"
 
 namespace Qi {
 
@@ -16,11 +18,11 @@ Application::Application(const ApplicationSpecification& specification) : m_spec
     m_window->setEventCallback(QI_BIND_EVENT_FN(Application::onEvent));
 
 
-    Renderer::init(*m_window, m_specification.graphicsAPI);
+    Renderer2D::init(*m_window, m_specification.graphicsAPI);
 }
 
 Application::~Application() {
-    Renderer::shutdown();
+    Renderer2D::shutdown();
 }
 
 void Application::run() {
@@ -31,14 +33,15 @@ void Application::run() {
         m_lastFrameTime = time;
 
         if (!m_minimized) {
-            if (!Renderer::beginFrame())
+            if (!Renderer2D::beginFrame())
                 continue;
             if (m_minimized)
                 continue;
-
+            Renderer2D::updateUniformBuffer();
+            Renderer2D::bindPipeline();
             for (Layer* layer : m_layerStack)
                 layer->onUpdate(timestep);
-            Renderer::endFrame();
+            Renderer2D::endFrame();
         }
         m_window->onUpdate();
     }
@@ -82,7 +85,7 @@ bool Application::onWindowResize(WindowResizeEvent& e) {
 
     m_minimized = false;
 
-    Renderer::onWindowResize(e.getWidth(), e.getHeight());
+    Renderer2D::onWindowResize(e.getWidth(), e.getHeight());
 
     return false;
 }

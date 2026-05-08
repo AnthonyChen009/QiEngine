@@ -6,8 +6,17 @@ target_sources(QiEngine PRIVATE
     vulkan/VulkanIndexBuffer.cpp
     vulkan/VulkanUniformBuffer.cpp
     vulkan/VulkanImage.cpp
-    Renderer.cpp
+    vulkan/VulkanInstance.cpp
+    vulkan/VulkanSurface.cpp
+    vulkan/VulkanDevice.cpp
+    vulkan/VulkanSwapChain.cpp
+    vulkan/VulkanRenderPass.cpp
+    vulkan/VulkanGraphicsPipeline.cpp
+    utils/VulkanUtils.cpp
 
+
+    Renderer.cpp
+    Renderer2D.cpp
     opengl/OpenGLRenderer.cpp
     opengl/OpenGLShader.cpp
     opengl/OpenGLVertexBuffer.cpp

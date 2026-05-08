@@ -9,23 +9,15 @@
 #include "VulkanVertexBuffer.hpp"
 #include "VulkanIndexBuffer.hpp"
 #include "VulkanUniformBuffer.hpp"
+#include "vulkan/VulkanDevice.hpp"
+#include "vulkan/VulkanGraphicsPipeline.hpp"
+#include "vulkan/VulkanInstance.hpp"
+#include "utils/VulkanUtils.hpp"
+#include "vulkan/VulkanRenderPass.hpp"
+#include "vulkan/VulkanSurface.hpp"
+#include "vulkan/VulkanSwapChain.hpp"
 
 namespace Qi {
-
-struct QueueFamilyIndices {
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool isComplete() {
-        return graphicsFamily.has_value();
-    }
-};
-
-struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
 
 class VulkanRenderer : public RendererBackend {
 public:
@@ -37,29 +29,22 @@ public:
 
     void onWindowResize(uint32_t width, uint32_t height) override;
 public:
-    void drawIndexed() override;
+    void drawIndexed(uint32_t count) override;
     void updateUniformBuffer() override;
+    void pushConstants(const PushConstant2D& push) override;
 private:
     void createInstance(const std::string& appName);
-    void setupDebugMessenger();
-    void createSurface(Window& window);
     void pickPhysicalDevice();
     int rateDevice(VkPhysicalDevice device);
     bool isDeviceSuitable(VkPhysicalDevice device);
-    void createLogicalDevice();
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     std::vector<const char*> getRequiredExtensions();
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,  Window& window);
-    void createSwapChain(Window& window);
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-    void createImageViews();
-    void createRenderPass();
-    void createGraphicsPipeline();
-    VkShaderModule createShaderModule(const std::vector<char>& code);
+    void createDescriptorSets();
     void createFrameBuffers();
     void createCommandPool();
     void createCommandBuffers();
@@ -67,35 +52,23 @@ private:
     void createSyncObjects();
     void recreateSwapChain();
     void cleanupSwapChain();
-    void createDescriptorSetLayout();
     void createUniformBuffers();
     void createDescriptorPool();
-    void createDescriptorSets();
     void createDepthResources();
-    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-    VkFormat findDepthFormat();
     bool hasStencilComponent(VkFormat format);
     void createTextureImageView();
     void bindPipeline() override;
 
 private:
     const int MAX_FRAMES_IN_FLIGHT = 2;
-    VkInstance m_instance = VK_NULL_HANDLE;
-    VkSurfaceKHR m_surface = VK_NULL_HANDLE;
-    VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
-    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-    VkDevice m_device = VK_NULL_HANDLE;
-    VkQueue m_graphicsQueue = VK_NULL_HANDLE;
-    VkQueue m_presentQueue = VK_NULL_HANDLE;
-    const std::vector<const char*> m_deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-    VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
-    std::vector<VkImage> m_swapChainImages;
-    VkFormat m_swapChainImageFormat = VK_FORMAT_UNDEFINED;
-    VkExtent2D m_swapChainExtent = {0, 0};
-    std::vector<VkImageView> m_swapChainImageViews;
-    VkRenderPass m_renderPass = VK_NULL_HANDLE;
-    VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
-    VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
+    VulkanInstance m_instance;
+    std::optional<VulkanSurface> m_surface;
+    std::optional<VulkanDevice> m_vulkanDevice;
+    std::optional<VulkanSwapChain> m_swapChain;
+    std::optional<VulkanRenderPass> m_renderPass;
+
+    std::optional<VulkanGraphicsPipeline> m_graphicsPipeline;
+
     std::vector<VkFramebuffer> m_swapChainFrameBuffers;
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> m_commandBuffers;
@@ -109,7 +82,6 @@ private:
     Window* m_window = nullptr;
     uint32_t m_winHeight = 0;
     uint32_t m_winWidth = 0;
-    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::unique_ptr<VulkanVertexBuffer> m_vertexBuffer;
     std::unique_ptr<VulkanIndexBuffer> m_indexBuffer;

@@ -1,15 +1,15 @@
-#version 450
+#version 460 core
 
-layout(push_constant) uniform PushConstants {
-    mat4 transform;
-    vec4 color;
-} push;
-
-layout(binding = 0) uniform UniformBufferObject {
+layout(std140, binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
     mat4 proj;
 } ubo;
+
+layout(std140, binding = 1) uniform PushConstants {
+    mat4 transform;
+    vec4 color;
+} push;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;

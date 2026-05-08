@@ -2,7 +2,6 @@
 
 #include "Base.hpp"
 #include "LayerStack.hpp"
-#include "Renderer.hpp"
 #include "RendererBackend.hpp"
 #include "events/Event.hpp"
 #include "internal/qipch.hpp"
