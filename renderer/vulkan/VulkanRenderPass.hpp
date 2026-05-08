@@ -8,7 +8,7 @@ public:
     VulkanRenderPass(VkDevice device, VkPhysicalDevice physicalDevice, VkFormat swapChainImageFormat);
     ~VulkanRenderPass();
 
-    VkRenderPass getVkRenderPass() const;
+    VkRenderPass getRenderPass() const;
 
 private:
     void createRenderPass(VkFormat swapChainImageFormat);

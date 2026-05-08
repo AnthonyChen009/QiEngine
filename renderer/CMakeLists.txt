@@ -11,6 +11,7 @@ target_sources(QiEngine PRIVATE
     vulkan/VulkanDevice.cpp
     vulkan/VulkanSwapChain.cpp
     vulkan/VulkanRenderPass.cpp
+    vulkan/VulkanGraphicsPipeline.cpp
     utils/VulkanUtils.cpp
 
 

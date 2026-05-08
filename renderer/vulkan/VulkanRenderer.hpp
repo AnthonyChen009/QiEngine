@@ -10,6 +10,7 @@
 #include "VulkanIndexBuffer.hpp"
 #include "VulkanUniformBuffer.hpp"
 #include "vulkan/VulkanDevice.hpp"
+#include "vulkan/VulkanGraphicsPipeline.hpp"
 #include "vulkan/VulkanInstance.hpp"
 #include "utils/VulkanUtils.hpp"
 #include "vulkan/VulkanRenderPass.hpp"
@@ -36,16 +37,14 @@ private:
     void pickPhysicalDevice();
     int rateDevice(VkPhysicalDevice device);
     bool isDeviceSuitable(VkPhysicalDevice device);
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     std::vector<const char*> getRequiredExtensions();
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,  Window& window);
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-    void createGraphicsPipeline();
-    VkShaderModule createShaderModule(const std::vector<char>& code);
+    void createDescriptorSets();
     void createFrameBuffers();
     void createCommandPool();
     void createCommandBuffers();
@@ -53,13 +52,9 @@ private:
     void createSyncObjects();
     void recreateSwapChain();
     void cleanupSwapChain();
-    void createDescriptorSetLayout();
     void createUniformBuffers();
     void createDescriptorPool();
-    void createDescriptorSets();
     void createDepthResources();
-    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-    VkFormat findDepthFormat();
     bool hasStencilComponent(VkFormat format);
     void createTextureImageView();
     void bindPipeline() override;
@@ -72,8 +67,8 @@ private:
     std::optional<VulkanSwapChain> m_swapChain;
     std::optional<VulkanRenderPass> m_renderPass;
 
-    VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
-    VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
+    std::optional<VulkanGraphicsPipeline> m_graphicsPipeline;
+
     std::vector<VkFramebuffer> m_swapChainFrameBuffers;
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> m_commandBuffers;
@@ -87,7 +82,6 @@ private:
     Window* m_window = nullptr;
     uint32_t m_winHeight = 0;
     uint32_t m_winWidth = 0;
-    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::unique_ptr<VulkanVertexBuffer> m_vertexBuffer;
     std::unique_ptr<VulkanIndexBuffer> m_indexBuffer;
