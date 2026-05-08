@@ -1,9 +1,7 @@
 #pragma once
 #include <vulkan/vulkan.h>
 #include <vector>
-#include "VulkanSurface.hpp"
 #include "types/QueueFamilyIndices.hpp"
-#include "types/SwapChainSupportDetails.hpp"
 namespace Qi {
 
 class VulkanDevice {

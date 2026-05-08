@@ -1,5 +1,5 @@
 #include "VulkanDevice.hpp"
-#include "VulkanRendererInternal.hpp"
+#include "utils/VulkanUtils.hpp"
 #include "Assert.hpp"
 #include <set>
 namespace Qi {
@@ -76,9 +76,9 @@ void VulkanDevice::createLogicalDevice() {
     createInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = m_deviceExtensions.data();
 
-    if constexpr (enableValidationLayers) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        createInfo.ppEnabledLayerNames = validationLayers.data();
+    if constexpr (VulkanUtils::enableValidationLayers) {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(VulkanUtils::validationLayers.size());
+        createInfo.ppEnabledLayerNames = VulkanUtils::validationLayers.data();
     } else {
         createInfo.enabledLayerCount = 0;
     }
@@ -97,7 +97,7 @@ bool VulkanDevice::isDeviceSuitable(VkPhysicalDevice device) const {
 
     bool swapChainAdequate = false;
     if (extensionsSupported) {
-        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, m_surface);
+        SwapChainSupportDetails swapChainSupport = VulkanUtils::querySwapChainSupport(device, m_surface);
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 

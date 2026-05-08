@@ -10,7 +10,9 @@ target_sources(QiEngine PRIVATE
     vulkan/VulkanSurface.cpp
     vulkan/VulkanDevice.cpp
     vulkan/VulkanSwapChain.cpp
-    types/SwapChainSupportDetails.cpp
+    vulkan/VulkanRenderPass.cpp
+    utils/VulkanUtils.cpp
+
 
     Renderer.cpp
     Renderer2D.cpp

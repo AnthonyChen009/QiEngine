@@ -3,7 +3,7 @@
 #include "Assert.hpp"
 #include "graphicsAPI/VulkanPlatform.hpp"
 #include <vulkan/vulkan_core.h>
-#include "VulkanRendererInternal.hpp"
+#include "utils/VulkanUtils.hpp"
 
 namespace Qi {
 
@@ -14,7 +14,7 @@ static bool checkValidationLayerSupport() {
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-    for (const char* layerName : validationLayers) {
+    for (const char* layerName : VulkanUtils::validationLayers) {
         bool layerFound = false;
 
         for (const auto& layerProperties : availableLayers) {
@@ -100,7 +100,7 @@ VulkanInstance::VulkanInstance() {
 }
 
 VulkanInstance::~VulkanInstance() {
-    if constexpr (enableValidationLayers) {
+    if constexpr (VulkanUtils::enableValidationLayers) {
         if (m_debugMessenger != VK_NULL_HANDLE) {
             destroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
             m_debugMessenger = VK_NULL_HANDLE;
@@ -136,11 +136,11 @@ void VulkanInstance::createVkInstance(const std::string& appName) {
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 
-    if constexpr (enableValidationLayers) {
+    if constexpr (VulkanUtils::enableValidationLayers) {
         QI_CORE_ASSERT(checkValidationLayerSupport(), "Validation layers requested, but not available!");
 
-        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        createInfo.ppEnabledLayerNames = validationLayers.data();
+        createInfo.enabledLayerCount = static_cast<uint32_t>(VulkanUtils::validationLayers.size());
+        createInfo.ppEnabledLayerNames = VulkanUtils::validationLayers.data();
 
         populateDebugMessengerCreateInfo(debugCreateInfo);
         createInfo.pNext = &debugCreateInfo;
@@ -169,7 +169,7 @@ std::vector<const char*> VulkanInstance::getRequiredExtensions() {
 
     std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-    if constexpr (enableValidationLayers) {
+    if constexpr (VulkanUtils::enableValidationLayers) {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 
@@ -177,7 +177,7 @@ std::vector<const char*> VulkanInstance::getRequiredExtensions() {
 }
 
 void VulkanInstance::setupDebugMessenger() {
-    if constexpr (enableValidationLayers) {
+    if constexpr (VulkanUtils::enableValidationLayers) {
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
         populateDebugMessengerCreateInfo(debugCreateInfo);
 

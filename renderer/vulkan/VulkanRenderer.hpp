@@ -11,7 +11,8 @@
 #include "VulkanUniformBuffer.hpp"
 #include "vulkan/VulkanDevice.hpp"
 #include "vulkan/VulkanInstance.hpp"
-#include "VulkanRendererInternal.hpp"
+#include "utils/VulkanUtils.hpp"
+#include "vulkan/VulkanRenderPass.hpp"
 #include "vulkan/VulkanSurface.hpp"
 #include "vulkan/VulkanSwapChain.hpp"
 
@@ -43,7 +44,6 @@ private:
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,  Window& window);
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-    void createRenderPass();
     void createGraphicsPipeline();
     VkShaderModule createShaderModule(const std::vector<char>& code);
     void createFrameBuffers();
@@ -70,7 +70,8 @@ private:
     std::optional<VulkanSurface> m_surface;
     std::optional<VulkanDevice> m_vulkanDevice;
     std::optional<VulkanSwapChain> m_swapChain;
-    VkRenderPass m_renderPass = VK_NULL_HANDLE;
+    std::optional<VulkanRenderPass> m_renderPass;
+
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
     std::vector<VkFramebuffer> m_swapChainFrameBuffers;

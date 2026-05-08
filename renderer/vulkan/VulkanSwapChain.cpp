@@ -2,6 +2,7 @@
 #include "graphicsAPI/VulkanPlatform.hpp"
 #include "Assert.hpp"
 #include "types/SwapChainSupportDetails.hpp"
+#include "utils/VulkanUtils.hpp"
 #include "types/QueueFamilyIndices.hpp"
 #include "VulkanImage.hpp"
 #include <vulkan/vulkan_core.h>
@@ -46,7 +47,7 @@ const std::vector<VkImageView>& VulkanSwapChain::getImageViews() const {
 }
 
 void VulkanSwapChain::createSwapChain(Window& window, VkSwapchainKHR oldSwapChain) {
-    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_physicalDevice, m_surface);
+    SwapChainSupportDetails swapChainSupport = VulkanUtils::querySwapChainSupport(m_physicalDevice, m_surface);
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
