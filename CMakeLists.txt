@@ -48,7 +48,9 @@ FetchContent_Declare(
     GIT_TAG v3.13.2
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/include/external/entt
 )
+message(STATUS "Fetching EnTT...")
 FetchContent_MakeAvailable(entt)
+message(STATUS "EnTT ready")
 
 
 target_link_libraries(QiEngine

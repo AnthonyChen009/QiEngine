@@ -6,5 +6,7 @@ target_sources(QiEngine PRIVATE
     LayerStack.cpp
     FileSystem.cpp
     utils/Time.cpp
+    scene/Scene.cpp
+    scene/Entity.cpp
     os/Memory.cpp
 )
