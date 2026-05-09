@@ -41,6 +41,15 @@ find_package(OpenGL REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(glm REQUIRED)
 
+include(FetchContent)
+FetchContent_Declare(
+    entt
+    GIT_REPOSITORY https://github.com/skypjack/entt.git
+    GIT_TAG v3.13.2
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/include/external/entt
+)
+FetchContent_MakeAvailable(entt)
+
 
 target_link_libraries(QiEngine
     PUBLIC
@@ -50,4 +59,5 @@ target_link_libraries(QiEngine
         glm::glm
         glad
         OpenGL::GL
+        EnTT::EnTT
 )
