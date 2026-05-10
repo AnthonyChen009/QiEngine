@@ -1,14 +1,12 @@
 #pragma once
-
-#include "scene/Scene.hpp"
-#include "scene/Components.hpp"
+#include "QiEngine.hpp"
 
 class SandboxScene : public Qi::Scene {
 public:
-    SandboxScene();
+    void onReady() override;
     void onUpdate(Qi::Timestep ts) override;
     void onEvent(Qi::Event& e) override;
 
 private:
-    Qi::Entity m_quad;
+    Qi::Sprite2D* m_player = nullptr;
 };

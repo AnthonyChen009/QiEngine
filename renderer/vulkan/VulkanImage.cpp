@@ -18,7 +18,7 @@ uint32_t VulkanImage::findMemoryType(
         }
     }
 
-    QI_CORE_ASSERT(false, "Failed to find suitable image memory type!");
+    QI_RENDERER_ASSERT(false, "Failed to find suitable image memory type!");
     return 0;
 }
 
@@ -50,7 +50,7 @@ void VulkanImage::createImage(
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     VkResult result = vkCreateImage(device, &imageInfo, nullptr, &image);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to create image!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create image!");
 
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(device, image, &memRequirements);
@@ -65,7 +65,7 @@ void VulkanImage::createImage(
     );
 
     result = vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to allocate image memory!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to allocate image memory!");
 
     vkBindImageMemory(device, image, imageMemory, 0);
 }
@@ -91,7 +91,7 @@ VkImageView VulkanImage::createImageView(
     VkImageView imageView = VK_NULL_HANDLE;
 
     VkResult result = vkCreateImageView(device, &viewInfo, nullptr, &imageView);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to create image view!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create image view!");
 
     return imageView;
 }

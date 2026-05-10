@@ -21,7 +21,7 @@ std::unique_ptr<Qi::Application> Qi::createApplication(Qi::ApplicationCommandLin
     spec.name = "Sandbox";
     spec.windowWidth = 1280;
     spec.windowHeight = 720;
-    spec.graphicsAPI = GraphicsAPI::OpenGL;
+    spec.graphicsAPI = GraphicsAPI::Vulkan;
     spec.workingDirectory = QI_ASSET_PATH;
     spec.commandLineArgs = args;
     return std::make_unique<Sandbox>(spec);

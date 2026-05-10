@@ -115,7 +115,7 @@ VulkanInstance::~VulkanInstance() {
 void VulkanInstance::createVkInstance(const std::string& appName) {
     uint32_t instanceVersion = 0;
     vkEnumerateInstanceVersion(&instanceVersion);
-    QI_CORE_ASSERT(instanceVersion >= VK_API_VERSION_1_4, "Vulkan 1.4 is not supported by this system!");
+    QI_RENDERER_ASSERT(instanceVersion >= VK_API_VERSION_1_4, "Vulkan 1.4 is not supported by this system!");
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -137,7 +137,7 @@ void VulkanInstance::createVkInstance(const std::string& appName) {
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 
     if constexpr (VulkanUtils::enableValidationLayers) {
-        QI_CORE_ASSERT(checkValidationLayerSupport(), "Validation layers requested, but not available!");
+        QI_RENDERER_ASSERT(checkValidationLayerSupport(), "Validation layers requested, but not available!");
 
         createInfo.enabledLayerCount = static_cast<uint32_t>(VulkanUtils::validationLayers.size());
         createInfo.ppEnabledLayerNames = VulkanUtils::validationLayers.data();
@@ -153,7 +153,7 @@ void VulkanInstance::createVkInstance(const std::string& appName) {
     QI_CORE_INFO("Creating Vulkan instance");
 
     VkResult result = vkCreateInstance(&createInfo, nullptr, &m_instance);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to create Vulkan instance!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create Vulkan instance!");
 
     QI_CORE_INFO("Vulkan instance created successfully");
 
@@ -188,7 +188,7 @@ void VulkanInstance::setupDebugMessenger() {
             &m_debugMessenger
         );
 
-        QI_CORE_ASSERT(debugResult == VK_SUCCESS, "Failed to set up Vulkan debug messenger!");
+        QI_RENDERER_ASSERT(debugResult == VK_SUCCESS, "Failed to set up Vulkan debug messenger!");
     }
 }
 

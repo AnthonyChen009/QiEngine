@@ -49,13 +49,21 @@ void VulkanGraphicsPipeline::createDescriptorSetLayout() {
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     uboLayoutBinding.pImmutableSamplers = nullptr;
 
+    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+    samplerLayoutBinding.binding = 1;
+    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &uboLayoutBinding;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.pBindings = bindings.data();
 
     VkResult result = vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to create descriptor set layout!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create descriptor set layout!");
 }
 
 void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
@@ -90,7 +98,7 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
     dynamicState.pDynamicStates = dynamicStates.data();
 
     VkVertexInputBindingDescription bindingDescription = Vertex::getBindingDescription();
-    std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = Vertex::getAttributeDescriptions();
+    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = Vertex::getAttributeDescriptions();
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -174,7 +182,7 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
         &m_pipelineLayout
     );
 
-    QI_CORE_ASSERT(layoutResult == VK_SUCCESS, "Failed to create pipeline layout!");
+    QI_RENDERER_ASSERT(layoutResult == VK_SUCCESS, "Failed to create pipeline layout!");
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -198,7 +206,7 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
 
     VkResult result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline);
 
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to create graphics pipeline!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create graphics pipeline!");
 
     vkDestroyShaderModule(m_device, fragShaderModule, nullptr);
     vkDestroyShaderModule(m_device, vertShaderModule, nullptr);
@@ -211,7 +219,7 @@ VkShaderModule VulkanGraphicsPipeline::createShaderModule(const std::vector<char
     createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
     VkShaderModule shaderModule;
     VkResult result = vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to create shader module!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create shader module!");
     return shaderModule;
 }
 

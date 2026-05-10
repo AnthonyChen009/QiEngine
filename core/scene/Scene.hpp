@@ -1,23 +1,41 @@
-#include "Timestep.hpp"
-#include "events/Event.hpp"
-#include "Entity.hpp"
+#pragma once
+
+#include <vector>
+#include <cstdint>
+
+#include <entt/entt.hpp>
+
+#include "Node.hpp"
 
 namespace Qi {
 
 class Scene {
+
 public:
-    virtual ~Scene() = default;
+    Scene();
+    virtual ~Scene();
 
-    virtual void onUpdate(Timestep ts) = 0;
-    virtual void onEvent(Event& e) {}
+    void addNode(Node* node, int32_t parentIndex = 0);
 
-protected:
+    void queueDestroyNode(int32_t index);
+    void destroyNode(int32_t index);
+    void processDestroyQueue();
+
+    virtual void onReady() {}
+    virtual void onUpdate(Timestep ts);
+    void onTick(Timestep ts);
+    virtual void onEvent(Event& e);
+
+    Node* getNode(int32_t index) { return m_nodes[index]; }
+    const std::vector<Node*>& getNodes() const { return m_nodes; }
+
+private:
+    std::vector<Node*> m_nodes;
+    std::vector<int32_t> m_destroyQueue;
+
     entt::registry m_registry;
 
-    Entity createEntity(const std::string& name = "Entity");
-    void destroyEntity(Entity entity);
-
-    friend class Entity;
+    friend class Node;
 };
 
 }

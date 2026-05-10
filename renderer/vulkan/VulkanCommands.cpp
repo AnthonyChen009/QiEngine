@@ -16,21 +16,21 @@ VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPo
 
     VkCommandBuffer commandBuffer;
     VkResult result = vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to allocate single-time command buffer!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to allocate single-time command buffer!");
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
     result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to begin single-time command buffer!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to begin single-time command buffer!");
 
     return commandBuffer;
 }
 
 void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkCommandBuffer commandBuffer) {
     VkResult result = vkEndCommandBuffer(commandBuffer);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to end single-time command buffer!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to end single-time command buffer!");
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -38,7 +38,7 @@ void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue q
     submitInfo.pCommandBuffers = &commandBuffer;
 
     result = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to submit single-time command buffer!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to submit single-time command buffer!");
 
     vkQueueWaitIdle(queue);
 
@@ -54,6 +54,38 @@ void copyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuf
     copyRegion.size = size;
 
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+    endSingleTimeCommands(device, commandPool, queue, commandBuffer);
+}
+
+void copyBufferToImage(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
+
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+
+    region.imageOffset = {0, 0, 0};
+    region.imageExtent = {
+        width,
+        height,
+        1
+    };
+
+    vkCmdCopyBufferToImage(
+        commandBuffer,
+        buffer,
+        image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &region
+    );
 
     endSingleTimeCommands(device, commandPool, queue, commandBuffer);
 }
@@ -102,7 +134,7 @@ void transitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue q
 
     }
     else {
-        QI_CORE_ASSERT(false, "Unsupported layout transition!");
+        QI_RENDERER_ASSERT(false, "Unsupported layout transition!");
     }
 
     barrier.subresourceRange.baseMipLevel = 0;
@@ -110,19 +142,12 @@ void transitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue q
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
-    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
-        newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
-
-        barrier.srcAccessMask = 0;
-        barrier.dstAccessMask =
-            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    }
-    else {
-        QI_CORE_ASSERT(false, "Unsupported layout transition!");
+    if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        if (format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT)
+            barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+    } else {
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     }
 
     vkCmdPipelineBarrier(

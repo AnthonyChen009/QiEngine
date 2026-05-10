@@ -12,6 +12,9 @@ target_sources(QiEngine PRIVATE
     vulkan/VulkanSwapChain.cpp
     vulkan/VulkanRenderPass.cpp
     vulkan/VulkanGraphicsPipeline.cpp
+    vulkan/VulkanTexture.cpp
+    vulkan/VulkanSampler.cpp
+    vulkan/VulkanTexture.cpp
     utils/VulkanUtils.cpp
 
 

@@ -19,7 +19,7 @@ void VulkanBuffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     VkResult result = vkCreateBuffer(m_device, &bufferInfo, nullptr, &m_buffer);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to create buffer!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create buffer!");
 
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(m_device, m_buffer, &memRequirements);
@@ -33,7 +33,7 @@ void VulkanBuffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
     );
 
     result = vkAllocateMemory(m_device, &allocInfo, nullptr, &m_memory);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to allocate buffer memory!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to allocate buffer memory!");
 
     vkBindBufferMemory(m_device, m_buffer, m_memory, 0);
 }
@@ -71,7 +71,7 @@ uint32_t VulkanBuffer::findMemoryType(
         }
     }
 
-    QI_CORE_ASSERT(false, "Failed to find suitable memory type!");
+    QI_RENDERER_ASSERT(false, "Failed to find suitable memory type!");
     return 0;
 }
 

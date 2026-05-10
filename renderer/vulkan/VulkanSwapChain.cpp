@@ -94,7 +94,7 @@ void VulkanSwapChain::createSwapChain(Window& window, VkSwapchainKHR oldSwapChai
     createInfo.oldSwapchain = oldSwapChain;
 
     VkResult result = vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &m_swapChain);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to create swap chain!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create swap chain!");
 
     vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, nullptr);
     m_swapChainImages.resize(imageCount);

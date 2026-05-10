@@ -20,7 +20,7 @@ VulkanDevice::~VulkanDevice() {
 void VulkanDevice::pickPhysicalDevice() {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
-    QI_CORE_ASSERT(deviceCount > 0, "Failed to find GPUs with Vulkan support!");
+    QI_RENDERER_ASSERT(deviceCount > 0, "Failed to find GPUs with Vulkan support!");
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
 
@@ -38,7 +38,7 @@ void VulkanDevice::pickPhysicalDevice() {
         }
     }
 
-    QI_CORE_ASSERT(bestDevice != VK_NULL_HANDLE && bestScore > 0, "Failed to find suitable GPU!");
+    QI_RENDERER_ASSERT(bestDevice != VK_NULL_HANDLE && bestScore > 0, "Failed to find suitable GPU!");
     m_physicalDevice = bestDevice;
 }
 
@@ -64,6 +64,7 @@ void VulkanDevice::createLogicalDevice() {
     }
 
     VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -84,7 +85,7 @@ void VulkanDevice::createLogicalDevice() {
     }
 
     VkResult res = vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device);
-    QI_CORE_ASSERT(res == VK_SUCCESS, "Failed to create logical device!");
+    QI_RENDERER_ASSERT(res == VK_SUCCESS, "Failed to create logical device!");
 
     vkGetDeviceQueue(m_device, indices.graphicsFamily.value(), 0, &m_graphicsQueue);
     vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_presentQueue);
@@ -101,7 +102,10 @@ bool VulkanDevice::isDeviceSuitable(VkPhysicalDevice device) const {
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
-    return indices.isComplete() && extensionsSupported && swapChainAdequate;
+    VkPhysicalDeviceFeatures supportedFeatures;
+    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+
+    return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
 int VulkanDevice::rateDevice(VkPhysicalDevice device) const {

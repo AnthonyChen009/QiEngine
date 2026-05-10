@@ -1,6 +1,7 @@
 add_executable(QiApp
     SandboxApp.cpp
     SandboxLayer.cpp
+    SandboxScene.cpp
 )
 
 

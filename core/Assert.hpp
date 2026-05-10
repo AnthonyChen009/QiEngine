@@ -18,7 +18,9 @@
 	// Currently accepts at least the condition and one additional parameter (the message) being optional
 	#define QI_ASSERT(...) QI_EXPAND_MACRO( QI_INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__)(_, __VA_ARGS__) )
 	#define QI_CORE_ASSERT(...) QI_EXPAND_MACRO( QI_INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__)(_CORE_, __VA_ARGS__) )
+	#define QI_RENDERER_ASSERT(...) QI_EXPAND_MACRO( QI_INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__)(_CORE_, __VA_ARGS__) )
 #else
 	#define QI_ASSERT(...)
 	#define QI_CORE_ASSERT(...)
+	#define QI_RENDERER_ASSERT(...) QI_EXPAND_MACRO( QI_INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__)(_CORE_, __VA_ARGS__) )
 #endif

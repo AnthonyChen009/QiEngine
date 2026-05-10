@@ -27,6 +27,15 @@ void VulkanRenderer::init(Window& window) {
     createFrameBuffers();
     m_vertexBuffer = std::make_unique<VulkanVertexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getPresentQueue(), vertices);
     m_indexBuffer = std::make_unique<VulkanIndexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getPresentQueue(), indices);
+
+    m_vulkanTexture.emplace(                                        // add here
+        m_vulkanDevice->getDevice(),
+        m_vulkanDevice->getPhysicalDevice(),
+        m_commandPool,
+        m_vulkanDevice->getPresentQueue(),
+        "images/textureTest.jpg"
+    );
+
     createUniformBuffers();
     createDescriptorPool();
     createCommandBuffers();
@@ -64,7 +73,7 @@ bool VulkanRenderer::beginFrame() {
         recreateSwapChain();
         return false;
     } else if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR) {
-        QI_CORE_ASSERT(false, "Failed to acquire swap chain image!");
+        QI_RENDERER_ASSERT(false, "Failed to acquire swap chain image!");
         return false;
     }
 
@@ -85,7 +94,7 @@ void VulkanRenderer::endFrame() {
     vkCmdEndRenderPass(commandBuffer);
 
     VkResult endResult = vkEndCommandBuffer(commandBuffer);
-    QI_CORE_ASSERT(endResult == VK_SUCCESS, "Failed to record command buffer!");
+    QI_RENDERER_ASSERT(endResult == VK_SUCCESS, "Failed to record command buffer!");
 
     VkSemaphore waitSemaphores[] = {
         m_imageAvailableSemaphores[m_currentFrame]
@@ -109,7 +118,7 @@ void VulkanRenderer::endFrame() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
     VkResult result = vkQueueSubmit(m_vulkanDevice->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to submit draw command buffer!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to submit draw command buffer!");
 
     VkSwapchainKHR swapChains[] = { m_swapChain->getSwapChain() };
 
@@ -129,7 +138,7 @@ void VulkanRenderer::endFrame() {
         m_frameBufferResized = false;
         recreateSwapChain();
     } else if (presentResult != VK_SUCCESS) {
-        QI_CORE_ASSERT(false, "Failed to present swap chain image!");
+        QI_RENDERER_ASSERT(false, "Failed to present swap chain image!");
     }
 
     m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
@@ -143,8 +152,8 @@ void VulkanRenderer::onWindowResize(uint32_t width, uint32_t height) {
 }
 
 void VulkanRenderer::drawIndexed(uint32_t count)  {
-    QI_CORE_ASSERT(m_pipelineBound, "Cannot draw before binding a graphics pipeline!");
-    QI_CORE_ASSERT(m_indexBuffer, "Index buffer has not been created!");
+    QI_RENDERER_ASSERT(m_pipelineBound, "Cannot draw before binding a graphics pipeline!");
+    QI_RENDERER_ASSERT(m_indexBuffer, "Index buffer has not been created!");
 
     vkCmdDrawIndexed(m_commandBuffers[m_currentFrame], m_indexBuffer->getCount(), 1, 0, 0, 0);
 }
@@ -170,7 +179,7 @@ void VulkanRenderer::createFrameBuffers() {
         framebufferInfo.layers = 1;
 
         VkResult result = vkCreateFramebuffer(m_vulkanDevice->getDevice(), &framebufferInfo, nullptr, &m_swapChainFrameBuffers[i]);
-        QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to create framebuffer!");
+        QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create framebuffer!");
     }
 }
 
@@ -182,7 +191,7 @@ void VulkanRenderer::createCommandPool() {
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
     VkResult result = vkCreateCommandPool(m_vulkanDevice->getDevice(), &poolInfo, nullptr, &m_commandPool);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to create command pool!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create command pool!");
 }
 
 void VulkanRenderer::createCommandBuffers() {
@@ -195,7 +204,7 @@ void VulkanRenderer::createCommandBuffers() {
     allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
 
     VkResult result = vkAllocateCommandBuffers(m_vulkanDevice->getDevice(), &allocInfo, m_commandBuffers.data());
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to allocate command buffers!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to allocate command buffers!");
 }
 
 void VulkanRenderer::beginCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
@@ -204,7 +213,7 @@ void VulkanRenderer::beginCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     beginInfo.flags = 0;
     beginInfo.pInheritanceInfo = nullptr;
     VkResult result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to begin recording command buffer!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to begin recording command buffer!");
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -253,13 +262,13 @@ void VulkanRenderer::createSyncObjects() {
         VkResult imageSemaphoreResult = vkCreateSemaphore(m_vulkanDevice->getDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]);
         VkResult renderSemaphoreResult = vkCreateSemaphore(m_vulkanDevice->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]);
         VkResult fenceResult = vkCreateFence(m_vulkanDevice->getDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]);
-        QI_CORE_ASSERT(imageSemaphoreResult == VK_SUCCESS && renderSemaphoreResult == VK_SUCCESS && fenceResult == VK_SUCCESS, "Failed to create synchronization objects!");
+        QI_RENDERER_ASSERT(imageSemaphoreResult == VK_SUCCESS && renderSemaphoreResult == VK_SUCCESS && fenceResult == VK_SUCCESS, "Failed to create synchronization objects!");
     }
 
 }
 
 void VulkanRenderer::bindPipeline() {
-    QI_CORE_ASSERT(m_vertexBuffer, "Vertex buffer has not been created!");
+    QI_RENDERER_ASSERT(m_vertexBuffer, "Vertex buffer has not been created!");
     vkCmdBindPipeline(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline->getPipeline());
 
     m_vertexBuffer->bind(m_commandBuffers[m_currentFrame]);
@@ -325,22 +334,25 @@ void VulkanRenderer::updateUniformBuffer() {
 }
 
 void VulkanRenderer::createDescriptorPool() {
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &poolSize;
+    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
     VkResult result = vkCreateDescriptorPool(m_vulkanDevice->getDevice(), &poolInfo, nullptr, &m_descriptorPool);
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to create descriptor pool!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create descriptor pool!");
 }
 
 void VulkanRenderer::createDescriptorSets() {
     std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_graphicsPipeline->getDescriptorSetLayout());
+
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = m_descriptorPool;
@@ -350,7 +362,7 @@ void VulkanRenderer::createDescriptorSets() {
     m_descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 
     VkResult result = vkAllocateDescriptorSets(m_vulkanDevice->getDevice(), &allocInfo, m_descriptorSets.data());
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to allocate descriptor sets!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to allocate descriptor sets!");
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         VkDescriptorBufferInfo bufferInfo{};
@@ -358,17 +370,30 @@ void VulkanRenderer::createDescriptorSets() {
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = m_descriptorSets[i];
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;
-        descriptorWrite.pImageInfo = nullptr;
-        descriptorWrite.pTexelBufferView = nullptr;
-        vkUpdateDescriptorSets(m_vulkanDevice->getDevice(), 1, &descriptorWrite, 0, nullptr);
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = m_vulkanTexture->getImageView();
+        imageInfo.sampler = m_vulkanTexture->getSampler();
+
+        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[0].dstSet = m_descriptorSets[i];
+        descriptorWrites[0].dstBinding = 0;
+        descriptorWrites[0].dstArrayElement = 0;
+        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[0].descriptorCount = 1;
+        descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+
+        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[1].dstSet = m_descriptorSets[i];
+        descriptorWrites[1].dstBinding = 1;
+        descriptorWrites[1].dstArrayElement = 0;
+        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[1].descriptorCount = 1;
+        descriptorWrites[1].pImageInfo = &imageInfo;
+
+        vkUpdateDescriptorSets(m_vulkanDevice->getDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 }
 
@@ -382,15 +407,6 @@ void VulkanRenderer::createDepthResources() {
 
 bool VulkanRenderer::hasStencilComponent(VkFormat format) {
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
-}
-
-void VulkanRenderer::createTextureImageView() {
-    m_textureImageView = VulkanImage::createImageView(
-        m_vulkanDevice->getDevice(),
-        m_textureImage,
-        VK_FORMAT_R8G8B8A8_SRGB,
-        VK_IMAGE_ASPECT_COLOR_BIT
-    );
 }
 
 void VulkanRenderer::pushConstants(const PushConstant2D& push) {

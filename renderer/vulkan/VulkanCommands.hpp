@@ -35,4 +35,6 @@ void transitionImageLayout(
     VkImageLayout newLayout
 );
 
+void copyBufferToImage(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
 }

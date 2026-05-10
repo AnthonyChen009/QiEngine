@@ -34,6 +34,7 @@ void Renderer2D::drawQuad(glm::vec2 position, glm::vec2 size, float rotation, gl
     Renderer::getBackend()->pushConstants(push);
     Renderer::getBackend()->drawIndexed(6);
 }
+
 void Renderer2D::updateUniformBuffer() {
     Renderer::getBackend()->updateUniformBuffer();
 }

@@ -75,7 +75,7 @@ void VulkanRenderPass::createRenderPass(VkFormat swapChainImageFormat) {
 
     VkResult result = vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPass);
 
-    QI_CORE_ASSERT(result == VK_SUCCESS, "Failed to create render pass!");
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create render pass!");
 }
 
 }
