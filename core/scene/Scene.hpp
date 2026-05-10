@@ -4,7 +4,7 @@
 #include <cstdint>
 
 #include <entt/entt.hpp>
-
+#include "glm/glm.hpp"
 #include "Node.hpp"
 
 namespace Qi {
@@ -28,6 +28,9 @@ public:
 
     Node* getNode(int32_t index) { return m_nodes[index]; }
     const std::vector<Node*>& getNodes() const { return m_nodes; }
+
+private:
+    void updateWorldTransforms(int32_t rootIndex);
 
 private:
     std::vector<Node*> m_nodes;

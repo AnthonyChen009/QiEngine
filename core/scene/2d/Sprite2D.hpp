@@ -18,6 +18,9 @@ public:
 
     const glm::vec4& getColor() const { return m_color; }
     const glm::vec2& getSize() const { return m_size; }
+    const glm::vec2& getPosition() const;
+    const glm::vec2& getWorldPosition() const;
+    void setTexture(const std::string& path);
 
 private:
     glm::vec4 m_color;

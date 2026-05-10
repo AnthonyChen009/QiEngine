@@ -15,16 +15,17 @@ target_sources(QiEngine PRIVATE
     vulkan/VulkanTexture.cpp
     vulkan/VulkanSampler.cpp
     vulkan/VulkanTexture.cpp
+    vulkan/Texture2D.cpp
     utils/VulkanUtils.cpp
 
 
     Renderer.cpp
     Renderer2D.cpp
-    opengl/OpenGLRenderer.cpp
-    opengl/OpenGLShader.cpp
-    opengl/OpenGLVertexBuffer.cpp
-    opengl/OpenGLIndexBuffer.cpp
-    opengl/OpenGLVertexArray.cpp
-    opengl/OpenGLUniformBuffer.cpp
+    # opengl/OpenGLRenderer.cpp
+    # opengl/OpenGLShader.cpp
+    # opengl/OpenGLVertexBuffer.cpp
+    # opengl/OpenGLIndexBuffer.cpp
+    # opengl/OpenGLVertexArray.cpp
+    # opengl/OpenGLUniformBuffer.cpp
 
 )

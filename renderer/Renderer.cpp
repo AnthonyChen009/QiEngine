@@ -1,6 +1,5 @@
 #include "Renderer.hpp"
 #include "vulkan/VulkanRenderer.hpp"
-#include "opengl/OpenGLRenderer.hpp"
 #include "Base.hpp"
 #include "Assert.hpp"
 
@@ -13,7 +12,7 @@ Renderer::Renderer(GraphicsAPI api) {
             break;
 
         case GraphicsAPI::OpenGL:
-            m_backend = createScope<OpenGLRenderer>();
+            QI_CORE_ASSERT("OpenGL not supported");
             break;
         case GraphicsAPI::None:
 

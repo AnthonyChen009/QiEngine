@@ -3,6 +3,7 @@
 layout(push_constant) uniform PushConstants {
     mat4 transform;
     vec4 color;
+    uint textureIndex;
 } push;
 
 layout(binding = 0) uniform UniformBufferObject {

@@ -9,4 +9,5 @@ public:
 
 private:
     Qi::Sprite2D* m_player = nullptr;
+    Qi::Sprite2D* m_child = nullptr;
 };

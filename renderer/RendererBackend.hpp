@@ -1,6 +1,7 @@
 #pragma once
 #include "Window.hpp"
 #include "types/PushConstants.hpp"
+#include "vulkan/VulkanTexture.hpp"
 
 namespace Qi {
 
@@ -18,6 +19,7 @@ public:
     virtual void onWindowResize(uint32_t width, uint32_t height) = 0;
     virtual void updateUniformBuffer() = 0;
     virtual void pushConstants(const PushConstant2D& push) = 0;
+    virtual Texture2D* getOrLoadTexture(const std::string& path) = 0;
 };
 
 }

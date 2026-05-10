@@ -1,10 +1,11 @@
 #pragma once
+#include "vulkan/Texture2D.hpp"
 #include <vulkan/vulkan.h>
 #include <string>
 
 namespace Qi {
 
-class VulkanTexture {
+class VulkanTexture : public Texture2D {
 public:
     VulkanTexture(
         VkDevice device,
@@ -17,8 +18,11 @@ public:
 
     VkImageView getImageView() const;
     VkSampler getSampler() const;
-    uint32_t getWidth() const;
-    uint32_t getHeight() const;
+    uint32_t getWidth() const override;
+    uint32_t getHeight() const override;
+    void setIndex(uint32_t index) { m_index = index; }
+    uint32_t getIndex() const override { return m_index; }
+    const std::string& getPath() const override {return m_imgPath;}
 
 private:
     VkDevice m_device = VK_NULL_HANDLE;
@@ -29,8 +33,10 @@ private:
     VkDeviceMemory m_imageMemory = VK_NULL_HANDLE;
     VkImageView m_imageView = VK_NULL_HANDLE;
     VkSampler m_sampler = VK_NULL_HANDLE;
+    std::string m_imgPath;
     uint32_t m_width = 0;
     uint32_t m_height = 0;
+    uint32_t m_index = 0;
 };
 
 }

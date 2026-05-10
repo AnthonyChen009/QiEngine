@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include "RendererBackend.hpp"
 #include "Window.hpp"
 #include <cstdint>
@@ -29,6 +30,7 @@ public:
     void endFrame() override;
 
     void onWindowResize(uint32_t width, uint32_t height) override;
+    Texture2D* getOrLoadTexture(const std::string& path) override;
 public:
     void drawIndexed(uint32_t count) override;
     void updateUniformBuffer() override;
@@ -80,8 +82,7 @@ private:
 
     std::vector<VkFramebuffer> m_swapChainFrameBuffers;
 
-    std::optional<VulkanTexture> m_vulkanTexture;
-    VkSampler m_textureSampler = VK_NULL_HANDLE;
+    std::unordered_map<std::string, std::unique_ptr<VulkanTexture>> m_textureCache;
 
     std::unique_ptr<VulkanVertexBuffer> m_vertexBuffer;
     std::unique_ptr<VulkanIndexBuffer> m_indexBuffer;
@@ -103,6 +104,7 @@ private:
     Window* m_window = nullptr;
     uint32_t m_winWidth = 0;
     uint32_t m_winHeight = 0;
+    uint32_t m_nextTextureIndex = 0;
 };
 
 }

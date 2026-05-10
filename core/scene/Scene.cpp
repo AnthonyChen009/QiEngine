@@ -8,6 +8,12 @@
 
 namespace Qi {
 
+struct TransformStackEntry {
+    int32_t nodeIndex;
+    glm::vec2 parentPos;
+    float parentRot;
+};
+
 Scene::Scene() {
     Node* root = QiNew<Node>("root");
 
@@ -121,6 +127,43 @@ void Scene::destroyNode(int32_t index) {
     }
 }
 
+void Scene::updateWorldTransforms(int32_t rootIndex) {
+    std::vector<TransformStackEntry> stack;
+    stack.push_back({rootIndex, {0.0f, 0.0f}, 0.0f});
+    while (!stack.empty()) {
+        TransformStackEntry entry = stack.back();
+        stack.pop_back();
+
+        Node* node = m_nodes[entry.nodeIndex];
+        if (!node)
+            continue;
+
+        glm::vec2 worldPos = entry.parentPos;
+        float worldRot = entry.parentRot;
+
+        if (node->hasComponent<TransformComponent>()) {
+            auto& transform = node->getComponent<TransformComponent>();
+
+            transform.worldPosition =
+                entry.parentPos + transform.position;
+
+            transform.worldRotation =
+                entry.parentRot + transform.rotation;
+
+            worldPos = transform.worldPosition;
+            worldRot = transform.worldRotation;
+        }
+
+        for (int32_t childIndex : node->m_childIndices) {
+            stack.push_back({
+                childIndex,
+                worldPos,
+                worldRot
+            });
+        }
+    }
+}
+
 void Scene::processDestroyQueue() {
     for (int32_t index : m_destroyQueue)
         destroyNode(index);
@@ -149,13 +192,17 @@ void Scene::onTick(Timestep ts) {
         RigidbodyComponent& rb = moveView.get<RigidbodyComponent>(entity);
         transform.position += rb.velocity * (float)ts;
     }
-
+    //update child nodes
+    updateWorldTransforms(0);
     // render system
     auto view = m_registry.view<TransformComponent, SpriteComponent>();
     for (auto entity : view) {
         TransformComponent& transform = view.get<TransformComponent>(entity);
         SpriteComponent& sprite = view.get<SpriteComponent>(entity);
-        Renderer2D::drawQuad(transform.position, transform.size, transform.rotation, sprite.color);
+        if (sprite.texture)
+            Renderer2D::drawTexturedQuad(transform.worldPosition, transform.size, transform.worldRotation, sprite.color, sprite.texture);
+        else
+            Renderer2D::drawQuad(transform.worldPosition, transform.size, transform.worldRotation, sprite.color);
     }
 }
 

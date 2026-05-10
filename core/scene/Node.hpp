@@ -37,6 +37,11 @@ public:
     }
 
     template<typename T>
+    const T& getComponent() const {
+        return m_registry->get<T>(m_entity);
+    }
+
+    template<typename T>
     bool hasComponent() const {
         return m_registry->all_of<T>(m_entity);
     }

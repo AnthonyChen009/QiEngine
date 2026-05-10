@@ -14,7 +14,7 @@ VulkanTexture::VulkanTexture(
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
     const std::string& path
-) : m_device(device), m_physicalDevice(physicalDevice), m_commandPool(commandPool), m_graphicsQueue(graphicsQueue) {
+) : m_device(device), m_physicalDevice(physicalDevice), m_commandPool(commandPool), m_graphicsQueue(graphicsQueue), m_imgPath(path) {
     //QI_CORE_INFO("Loading texture from: {0}", path);
    // QI_CORE_INFO("Current path: {0}", std::filesystem::current_path().string());
     int texWidth, texHeight, texChannels;

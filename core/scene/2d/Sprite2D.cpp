@@ -1,5 +1,5 @@
 #include "Sprite2D.hpp"
-
+#include "Log.hpp"
 namespace Qi {
 
 Sprite2D::Sprite2D(const std::string& name, glm::vec4 color, glm::vec2 size) : Node(name), m_color(color), m_size(size) {}
@@ -23,6 +23,19 @@ void Sprite2D::setSize(const glm::vec2& size) {
 
 void Sprite2D::setPosition(const glm::vec2& pos) {
     getComponent<TransformComponent>().position = pos;
+}
+
+const glm::vec2& Sprite2D::getPosition() const {
+    return getComponent<TransformComponent>().position;
+}
+
+const glm::vec2& Sprite2D::getWorldPosition() const {
+    return getComponent<TransformComponent>().worldPosition;
+}
+
+void Sprite2D::setTexture(const std::string& path) {
+    QI_CORE_INFO("Setting texture: {0}", path);
+    getComponent<SpriteComponent>().texture = Texture2D::load(path);
 }
 
 }

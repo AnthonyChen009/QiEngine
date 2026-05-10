@@ -1,11 +1,19 @@
 #include "SandboxScene.hpp"
+#include "Log.hpp"
 #include "QiEngine.hpp"
+#include "os/Memory.hpp"
+#include "scene/2d/Sprite2D.hpp"
 
 void SandboxScene::onReady() {
     m_player = QiNew<Qi::Sprite2D>("Player");
     addNode(m_player, 0);
+    m_player->setTexture("images/textureTest.jpg");
     m_player->setSize(glm::vec2(100, 100));
     m_player->addComponent<Qi::RigidbodyComponent>(glm::vec2{ 200.0f, 150.0f });
+    m_child = QiNew<Qi::Sprite2D>("Child");
+    m_player->addChild(m_child);
+    m_child->setSize(glm::vec2(100, 100));
+    m_child->setPosition(glm::vec2(100, 100));
 }
 
 void SandboxScene::onUpdate(Qi::Timestep ts) {
