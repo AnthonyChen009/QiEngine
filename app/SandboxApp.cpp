@@ -1,9 +1,9 @@
-#include "Application.hpp"
+#include "core/Application.hpp"
 #include "SandboxLayer.hpp"
-#include "Window.hpp"
+#include "core/Window.hpp"
 #include <iostream>
 #include <QiEngine.hpp>
-#include "EntryPoint.hpp"
+#include "core/EntryPoint.hpp"
 #include <memory>
 
 class Sandbox : public Qi::Application {

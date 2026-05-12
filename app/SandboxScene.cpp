@@ -1,5 +1,4 @@
 #include "SandboxScene.hpp"
-#include "Log.hpp"
 #include "QiEngine.hpp"
 #include "os/Memory.hpp"
 #include "scene/2d/Sprite2D.hpp"

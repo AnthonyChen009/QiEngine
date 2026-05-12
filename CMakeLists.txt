@@ -5,27 +5,30 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(QiEngine STATIC
-    ${CMAKE_SOURCE_DIR}/include/external/stb/stb_image.cpp
+    ${CMAKE_SOURCE_DIR}/external/stb/stb_image.cpp
 )
-add_library(glad ${CMAKE_SOURCE_DIR}/include/external/glad/src/glad.c)
+add_library(glad ${CMAKE_SOURCE_DIR}/external/glad/src/glad.c)
 
-add_subdirectory(core)
-add_subdirectory(platform)
-add_subdirectory(renderer)
+add_subdirectory(src/core)
+add_subdirectory(src/platform)
+add_subdirectory(src/renderer)
+add_subdirectory(src/os)
+add_subdirectory(src/scene)
+add_subdirectory(src/utils)
+
 add_subdirectory(app)
 
 target_include_directories(glad PUBLIC
-    ${CMAKE_SOURCE_DIR}/include/external/glad/include
+    ${CMAKE_SOURCE_DIR}/external/glad/include
 )
 
 target_include_directories(QiEngine
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/core
-        ${CMAKE_SOURCE_DIR}/platform
-        ${CMAKE_SOURCE_DIR}/renderer
+        ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/include
     PRIVATE
         ${CMAKE_SOURCE_DIR}/include/internal
+        ${CMAKE_SOURCE_DIR}/external
 )
 
 target_precompile_headers(QiEngine PRIVATE
@@ -48,7 +51,7 @@ FetchContent_Declare(
     entt
     GIT_REPOSITORY https://github.com/skypjack/entt.git
     GIT_TAG v3.16.0
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/include/external/entt
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/entt
 )
 message(STATUS "Fetching EnTT...")
 FetchContent_MakeAvailable(entt)
