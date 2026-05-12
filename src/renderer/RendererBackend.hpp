@@ -20,6 +20,10 @@ public:
     virtual void updateUniformBuffer() = 0;
     virtual void pushConstants(const PushConstant2D& push) = 0;
     virtual Texture2D* getOrLoadTexture(const std::string& path) = 0;
+    virtual void initImGui(Window* window) = 0;
+    virtual void shutdownImGui() = 0;
+    virtual void beginImGuiFrame() = 0;
+    virtual void renderImGui() = 0;
 };
 
 }

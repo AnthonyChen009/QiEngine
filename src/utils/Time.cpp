@@ -3,7 +3,7 @@
 
 namespace Qi {
 
-float Time::GetTime() {
+float Time::getTime() {
     return (float)glfwGetTime();
 }
 

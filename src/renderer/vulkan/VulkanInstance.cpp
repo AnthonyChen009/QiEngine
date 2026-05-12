@@ -113,9 +113,26 @@ VulkanInstance::~VulkanInstance() {
 }
 
 void VulkanInstance::createVkInstance(const std::string& appName) {
-    uint32_t instanceVersion = 0;
-    vkEnumerateInstanceVersion(&instanceVersion);
-    QI_RENDERER_ASSERT(instanceVersion >= VK_API_VERSION_1_4, "Vulkan 1.4 is not supported by this system!");
+    uint32_t instanceVersion = VK_API_VERSION_1_0; // safe default
+
+    if (vkEnumerateInstanceVersion) {
+        vkEnumerateInstanceVersion(&instanceVersion);
+    }
+
+    uint32_t targetVersion;
+    if (instanceVersion >= VK_API_VERSION_1_4) {
+        targetVersion = VK_API_VERSION_1_4;
+    }
+    else if (instanceVersion >= VK_API_VERSION_1_3) {
+        targetVersion = VK_API_VERSION_1_3;
+    }
+    else if (instanceVersion >= VK_API_VERSION_1_2) {
+        targetVersion = VK_API_VERSION_1_2;
+    }
+    else {
+        QI_RENDERER_ASSERT(false, "Vulkan 1.2 is not supported by this system!");
+    }
+
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -123,7 +140,7 @@ void VulkanInstance::createVkInstance(const std::string& appName) {
     appInfo.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
     appInfo.pEngineName = "Qi Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(0, 0, 1);
-    appInfo.apiVersion = VK_API_VERSION_1_4;
+    appInfo.apiVersion = targetVersion;
 
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;

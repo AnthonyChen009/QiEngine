@@ -8,7 +8,10 @@ namespace Qi {
 	}
 
 	LayerStack::~LayerStack() {
-
+	    for (Layer* layer : m_layers) {
+			layer->onDetach();
+			delete layer;
+		}
 	}
 
 	void LayerStack::pushLayer(Layer* layer) {

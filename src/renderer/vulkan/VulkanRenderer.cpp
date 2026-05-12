@@ -1,3 +1,4 @@
+#include "core/Window.hpp"
 #include "renderer/vulkan/Texture2D.hpp"
 #include "renderer/vulkan/VulkanImage.hpp"
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -12,8 +13,19 @@
 #include "VulkanCommands.hpp"
 #include "renderer/types/UniformBufferObject.hpp"
 #include "types/PushConstants.hpp"
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
+
 
 namespace Qi {
+
+static void checkVkResult(VkResult result) {
+    if (result == VK_SUCCESS) return;
+    QI_CORE_ERROR("[ImGui] Vulkan error code: {0}", static_cast<int>(result));
+    if (result < 0)
+        QI_RENDERER_ASSERT(false, "Aborted due to ImGui Vulkan error!");
+}
 
 void VulkanRenderer::init(Window& window) {
     m_window = &window;
@@ -31,6 +43,7 @@ void VulkanRenderer::init(Window& window) {
 
     createUniformBuffers();
     createDescriptorPool();
+    createImGuiDescriptorPool();
     createCommandBuffers();
     createSyncObjects();
     createDescriptorSets();
@@ -438,6 +451,71 @@ Texture2D* VulkanRenderer::getOrLoadTexture(const std::string& path) {
     return ptr;
 }
 
+void VulkanRenderer::initImGui(Window* window) {
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+    ImGui::StyleColorsDark();
+    GLFWwindow* nativeWindow = static_cast<GLFWwindow*>(window->getNativeWindow());
+
+    ImGui_ImplVulkan_InitInfo initInfo{};
+    initInfo.ApiVersion = VK_API_VERSION_1_3;
+    initInfo.Instance = m_instance.getVkInstance();
+    initInfo.PhysicalDevice = m_vulkanDevice->getPhysicalDevice();
+    initInfo.Device = m_vulkanDevice->getDevice();
+    //fix this
+    initInfo.QueueFamily = m_vulkanDevice->findQueueFamilies(m_vulkanDevice->getPhysicalDevice()).graphicsFamily.value();
+    initInfo.Queue = m_vulkanDevice->getGraphicsQueue();
+    initInfo.DescriptorPool = m_imguiDescriptorPool;
+    initInfo.MinImageCount = static_cast<uint32_t>(m_swapChain->getImages().size());
+    initInfo.ImageCount = static_cast<uint32_t>(m_swapChain->getImages().size());
+
+    initInfo.PipelineInfoMain.RenderPass = m_renderPass->getRenderPass();
+    initInfo.PipelineInfoMain.Subpass = 0;
+    initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+    initInfo.CheckVkResultFn = checkVkResult;
+
+    ImGui_ImplGlfw_InitForVulkan(nativeWindow, true);
+    ImGui_ImplVulkan_Init(&initInfo);
+}
+
+void VulkanRenderer::shutdownImGui() {
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+}
+
+void VulkanRenderer::beginImGuiFrame() {
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+}
+
+void VulkanRenderer::renderImGui() {
+    ImGui::Render();
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers[m_currentFrame]);
+}
+
+void VulkanRenderer::createImGuiDescriptorPool() {
+    VkDescriptorPoolSize poolSizes[] = {
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
+    };
+    VkDescriptorPoolCreateInfo poolInfo{};
+    poolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    poolInfo.maxSets       = 1000;
+    poolInfo.poolSizeCount = 1;
+    poolInfo.pPoolSizes    = poolSizes;
+
+    VkResult result = vkCreateDescriptorPool(m_vulkanDevice->getDevice(), &poolInfo, nullptr, &m_imguiDescriptorPool);
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create ImGui descriptor pool!");
+}
+
 void VulkanRenderer::shutdown() {
     if (m_vulkanDevice->getDevice() != VK_NULL_HANDLE) {
         vkDeviceWaitIdle(m_vulkanDevice->getDevice());
@@ -466,12 +544,17 @@ void VulkanRenderer::shutdown() {
         vkDestroyDescriptorPool(m_vulkanDevice->getDevice(), m_descriptorPool, nullptr);
         m_descriptorPool = VK_NULL_HANDLE;
     }
+
+    if (m_imguiDescriptorPool != VK_NULL_HANDLE) {
+        vkDestroyDescriptorPool(m_vulkanDevice->getDevice(), m_imguiDescriptorPool, nullptr);
+        m_imguiDescriptorPool = VK_NULL_HANDLE;
+    }
+
     cleanupSwapChain();
 
     if (m_commandPool != VK_NULL_HANDLE) {
         vkDestroyCommandPool(m_vulkanDevice->getDevice(), m_commandPool, nullptr);
         m_commandPool = VK_NULL_HANDLE;
     }
-
 }
 }

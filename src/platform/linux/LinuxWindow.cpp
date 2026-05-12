@@ -35,29 +35,13 @@ void LinuxWindow::init(const WindowProps& props) {
 		glfwSetErrorCallback(glfwErrorCallback);
 	}
 
-	if (props.graphicsAPI == GraphicsAPI::Vulkan) {
-        if (glfwVulkanSupported()) {
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-            m_data.graphicsAPI = GraphicsAPI::Vulkan;
-        } else {
-            QI_CORE_WARN("Vulkan not supported. Falling back to OpenGL.");
-
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-            m_data.graphicsAPI = GraphicsAPI::OpenGL;
-        }
-    } else if (props.graphicsAPI == GraphicsAPI::OpenGL) {
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-        m_data.graphicsAPI = GraphicsAPI::OpenGL;
+	if (!glfwVulkanSupported()) {
+        QI_CORE_ASSERT("Vulkan is not supported on this system.");
     }
+
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+    m_data.graphicsAPI = GraphicsAPI::Vulkan;
 
 	m_window = glfwCreateWindow((int)props.width, (int)props.height, m_data.title.c_str(), nullptr, nullptr);
 	QI_CORE_ASSERT(m_window, "Failed to create GLFW window!");

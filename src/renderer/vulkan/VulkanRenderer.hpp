@@ -35,6 +35,10 @@ public:
     void drawIndexed(uint32_t count) override;
     void updateUniformBuffer() override;
     void pushConstants(const PushConstant2D& push) override;
+    void initImGui(Window* window) override;
+    void shutdownImGui() override;
+    void beginImGuiFrame() override;
+    void renderImGui() override;
 private:
     void createInstance(const std::string& appName);
     void pickPhysicalDevice();
@@ -60,6 +64,8 @@ private:
     void createDepthResources();
     bool hasStencilComponent(VkFormat format);
     void bindPipeline() override;
+    void createImGuiDescriptorPool();
+
 
 private:
     VulkanInstance m_instance;
@@ -105,6 +111,7 @@ private:
     uint32_t m_winWidth = 0;
     uint32_t m_winHeight = 0;
     uint32_t m_nextTextureIndex = 0;
+    VkDescriptorPool m_imguiDescriptorPool = VK_NULL_HANDLE;
 };
 
 }
