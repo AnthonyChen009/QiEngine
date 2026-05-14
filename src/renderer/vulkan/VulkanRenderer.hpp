@@ -30,15 +30,17 @@ public:
     void endFrame() override;
 
     void onWindowResize(uint32_t width, uint32_t height) override;
+    void onVysncToggle(bool isVSync) override;
     Texture2D* getOrLoadTexture(const std::string& path) override;
 public:
     void drawIndexed(uint32_t count) override;
     void updateUniformBuffer() override;
-    void pushConstants(const PushConstant2D& push) override;
+    void pushConstants2D(const PushConstant2D& push) override;
     void initImGui(Window* window) override;
     void shutdownImGui() override;
     void beginImGuiFrame() override;
     void renderImGui() override;
+    void bindPipeline(VulkanUtils::PipelineType type) override;
 private:
     void createInstance(const std::string& appName);
     void pickPhysicalDevice();
@@ -51,7 +53,7 @@ private:
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,  Window& window);
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-    void createDescriptorSets();
+    void createDescriptorSets(VulkanUtils::PipelineType type);
     void createFrameBuffers();
     void createCommandPool();
     void createCommandBuffers();
@@ -63,7 +65,6 @@ private:
     void createDescriptorPool();
     void createDepthResources();
     bool hasStencilComponent(VkFormat format);
-    void bindPipeline() override;
     void createImGuiDescriptorPool();
 
 
@@ -78,7 +79,8 @@ private:
 
     std::optional<VulkanRenderPass> m_renderPass;
 
-    std::optional<VulkanGraphicsPipeline> m_graphicsPipeline;
+    std::optional<VulkanGraphicsPipeline> m_graphicsPipeline2D;
+    std::optional<VulkanGraphicsPipeline> m_graphicsPipeline3D;
 
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
 
@@ -95,7 +97,8 @@ private:
     std::vector<std::unique_ptr<VulkanUniformBuffer>> m_uniformBuffers;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-    std::vector<VkDescriptorSet> m_descriptorSets;
+    std::vector<VkDescriptorSet> m_descriptorSets2D;
+    std::vector<VkDescriptorSet> m_descriptorSets3D;
 
     std::vector<VkCommandBuffer> m_commandBuffers;
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
@@ -112,6 +115,8 @@ private:
     uint32_t m_winHeight = 0;
     uint32_t m_nextTextureIndex = 0;
     VkDescriptorPool m_imguiDescriptorPool = VK_NULL_HANDLE;
+    bool m_pendingVSync = false;
+    bool m_vsyncTogglePending = false;
 };
 
 }

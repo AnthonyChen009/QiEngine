@@ -16,7 +16,9 @@ public:
     static void endFrame();
     static void drawQuad();
     static void onWindowResize(uint32_t width, uint32_t height);
-
+    static void updateUniformBuffer();
+    static void bindPipeline();
+    static void setVSync(bool isVSync);
     static void drawIndexed();
     static RendererBackend* getBackend();
 

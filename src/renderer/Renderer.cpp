@@ -38,9 +38,21 @@ void Renderer::endFrame() {
     s_instance->m_backend->endFrame();
 }
 
+void Renderer::updateUniformBuffer() {
+    Renderer::getBackend()->updateUniformBuffer();
+}
+
+void Renderer::bindPipeline() {
+    //Renderer::getBackend()->bindPipeline();
+}
+
+void Renderer::setVSync(bool isVSync) {
+    s_instance->getBackend()->onVysncToggle(isVSync);
+}
+
 void Renderer::drawQuad() {
-    s_instance->m_backend->updateUniformBuffer();
-    s_instance->m_backend->bindPipeline();
+    //s_instance->m_backend->updateUniformBuffer();
+    //s_instance->m_backend->bindPipeline();
     s_instance->m_backend->drawIndexed(6);
 }
 

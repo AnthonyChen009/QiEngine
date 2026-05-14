@@ -1,5 +1,7 @@
 #include "core/Window.hpp"
+#include "renderer/utils/VulkanUtils.hpp"
 #include "renderer/vulkan/Texture2D.hpp"
+#include "renderer/vulkan/VulkanGraphicsPipeline.hpp"
 #include "renderer/vulkan/VulkanImage.hpp"
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "renderer/vulkan/VulkanRenderer.hpp"
@@ -8,7 +10,7 @@
 #include <vulkan/vulkan.h>
 #include "core/FileSystem.hpp"
 #include "core/Assert.hpp"
-#include "renderer/types/Vertex.hpp"
+#include "types/Vertex.hpp"
 #include <glm/glm.hpp>
 #include "VulkanCommands.hpp"
 #include "renderer/types/UniformBufferObject.hpp"
@@ -34,7 +36,8 @@ void VulkanRenderer::init(Window& window) {
     m_vulkanDevice.emplace(m_instance.getVkInstance(), m_surface->getVkSurface());
     m_swapChain.emplace(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_surface->getVkSurface(), window, m_vulkanDevice->findQueueFamilies(m_vulkanDevice->getPhysicalDevice()));
     m_renderPass.emplace(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_swapChain->getImageFormat());
-    m_graphicsPipeline.emplace(m_vulkanDevice->getDevice(), m_renderPass->getRenderPass());
+    m_graphicsPipeline2D.emplace(m_vulkanDevice->getDevice(), m_renderPass->getRenderPass(), VulkanUtils::PipelineType::Pipeline2D);
+    m_graphicsPipeline3D.emplace(m_vulkanDevice->getDevice(), m_renderPass->getRenderPass(), VulkanUtils::PipelineType::Pipeline3D);
     createCommandPool();
     createDepthResources();
     createFrameBuffers();
@@ -46,7 +49,8 @@ void VulkanRenderer::init(Window& window) {
     createImGuiDescriptorPool();
     createCommandBuffers();
     createSyncObjects();
-    createDescriptorSets();
+    createDescriptorSets(VulkanUtils::PipelineType::Pipeline2D);
+    createDescriptorSets(VulkanUtils::PipelineType::Pipeline3D);
     //log
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(m_vulkanDevice->getPhysicalDevice(), &properties);
@@ -148,6 +152,13 @@ void VulkanRenderer::endFrame() {
     }
 
     m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+    if (m_vsyncTogglePending) {
+        vkDeviceWaitIdle(m_vulkanDevice->getDevice());
+        m_swapChain->setVSync(m_pendingVSync);
+        recreateSwapChain();
+        m_vsyncTogglePending = false;
+    }
 }
 
 void VulkanRenderer::onWindowResize(uint32_t width, uint32_t height) {
@@ -155,6 +166,11 @@ void VulkanRenderer::onWindowResize(uint32_t width, uint32_t height) {
     m_winWidth = width;
     m_frameBufferResized = true;
 
+}
+
+void VulkanRenderer::onVysncToggle(bool isVSync) {
+    m_pendingVSync = isVSync;
+    m_vsyncTogglePending = true;
 }
 
 void VulkanRenderer::drawIndexed(uint32_t count)  {
@@ -273,14 +289,18 @@ void VulkanRenderer::createSyncObjects() {
 
 }
 
-void VulkanRenderer::bindPipeline() {
+void VulkanRenderer::bindPipeline(VulkanUtils::PipelineType type) {
     QI_RENDERER_ASSERT(m_vertexBuffer, "Vertex buffer has not been created!");
-    vkCmdBindPipeline(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline->getPipeline());
+
+    std::optional<VulkanGraphicsPipeline>& selPipeline = (type == VulkanUtils::PipelineType::Pipeline2D) ?  m_graphicsPipeline2D : m_graphicsPipeline3D;
+    std::vector<VkDescriptorSet>& sets = (type == VulkanUtils::PipelineType::Pipeline2D) ? m_descriptorSets2D : m_descriptorSets3D;
+
+    vkCmdBindPipeline(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, selPipeline->getPipeline());
 
     m_vertexBuffer->bind(m_commandBuffers[m_currentFrame]);
     m_indexBuffer->bind(m_commandBuffers[m_currentFrame]);
 
-    vkCmdBindDescriptorSets(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline->getPipelineLayout(), 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
+    vkCmdBindDescriptorSets(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, selPipeline->getPipelineLayout(), 0, 1, &sets[m_currentFrame], 0, nullptr);
 
     m_pipelineBound = true;
 }
@@ -330,7 +350,6 @@ void VulkanRenderer::createUniformBuffers() {
 
 void VulkanRenderer::updateUniformBuffer() {
     UniformBufferObject ubo{};
-    ubo.model = glm::mat4(1.0f);
     ubo.view = glm::mat4(1.0f);
     float width = static_cast<float>(m_swapChain->getExtent().width);
     float height = static_cast<float>(m_swapChain->getExtent().height);
@@ -342,23 +361,27 @@ void VulkanRenderer::updateUniformBuffer() {
 void VulkanRenderer::createDescriptorPool() {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 1024 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    poolSizes[1].descriptorCount = 1024 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
 
     VkResult result = vkCreateDescriptorPool(m_vulkanDevice->getDevice(), &poolInfo, nullptr, &m_descriptorPool);
     QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create descriptor pool!");
 }
 
-void VulkanRenderer::createDescriptorSets() {
-    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_graphicsPipeline->getDescriptorSetLayout());
+void VulkanRenderer::createDescriptorSets(VulkanUtils::PipelineType type) {
+
+    std::optional<VulkanGraphicsPipeline>& selPipeline = (type == VulkanUtils::PipelineType::Pipeline2D) ?  m_graphicsPipeline2D : m_graphicsPipeline3D;
+    std::vector<VkDescriptorSet>& sets = (type == VulkanUtils::PipelineType::Pipeline2D) ? m_descriptorSets2D : m_descriptorSets3D;
+
+    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, selPipeline->getDescriptorSetLayout());
 
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -366,8 +389,8 @@ void VulkanRenderer::createDescriptorSets() {
     allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
     allocInfo.pSetLayouts = layouts.data();
 
-    m_descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    VkResult result = vkAllocateDescriptorSets(m_vulkanDevice->getDevice(), &allocInfo, m_descriptorSets.data());
+    sets.resize(MAX_FRAMES_IN_FLIGHT);
+    VkResult result = vkAllocateDescriptorSets(m_vulkanDevice->getDevice(), &allocInfo, sets.data());
     QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to allocate descriptor sets!");
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -378,7 +401,7 @@ void VulkanRenderer::createDescriptorSets() {
 
         VkWriteDescriptorSet write{};
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet = m_descriptorSets[i];
+        write.dstSet = sets[i];
         write.dstBinding = 0;
         write.dstArrayElement = 0;
         write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -401,10 +424,10 @@ bool VulkanRenderer::hasStencilComponent(VkFormat format) {
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void VulkanRenderer::pushConstants(const PushConstant2D& push) {
+void VulkanRenderer::pushConstants2D(const PushConstant2D& push) {
     vkCmdPushConstants(
         m_commandBuffers[m_currentFrame],
-        m_graphicsPipeline->getPipelineLayout(),
+        m_graphicsPipeline2D->getPipelineLayout(),
         VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
         0,
         sizeof(PushConstant2D),
@@ -437,15 +460,18 @@ Texture2D* VulkanRenderer::getOrLoadTexture(const std::string& path) {
 
         VkWriteDescriptorSet write{};
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet = m_descriptorSets[i];
         write.dstBinding = 1;
         write.dstArrayElement = index;
         write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         write.descriptorCount = 1;
         write.pImageInfo = &imageInfo;
 
+        write.dstSet = m_descriptorSets2D[i];
+        vkUpdateDescriptorSets(m_vulkanDevice->getDevice(), 1, &write, 0, nullptr);
+        write.dstSet = m_descriptorSets3D[i];
         vkUpdateDescriptorSets(m_vulkanDevice->getDevice(), 1, &write, 0, nullptr);
     }
+
     Texture2D* ptr = texture.get();
     m_textureCache[path] = std::move(texture);
     return ptr;

@@ -2,7 +2,7 @@
 
 #include "VulkanBuffer.hpp"
 #include <vector>
-#include "renderer/types/Vertex.hpp"
+#include "types/Vertex.hpp"
 
 namespace Qi {
 

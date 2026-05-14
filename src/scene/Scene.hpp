@@ -28,7 +28,7 @@ public:
 
     Node* getNode(int32_t index) { return m_nodes[index]; }
     const std::vector<Node*>& getNodes() const { return m_nodes; }
-
+    entt::registry& getRegistry() { return m_registry; }
 private:
     void updateWorldTransforms(int32_t rootIndex);
 

@@ -4,6 +4,7 @@
 #include "renderer/types/SwapChainSupportDetails.hpp"
 
 namespace Qi::VulkanUtils {
+enum class PipelineType { Pipeline2D, Pipeline3D };
 
 static constexpr bool enableValidationLayers =
 #ifdef QI_DEBUG

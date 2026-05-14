@@ -20,7 +20,8 @@ enum class EventType {
     MouseButtonPressed,
     MouseButtonReleased,
     MouseMoved,
-    MouseScrolled
+    MouseScrolled,
+    VSync,
 };
 
 enum EventCategory {
@@ -81,7 +82,6 @@ public:
 
         return false;
     }
-
 private:
     Event& m_event;
 };

@@ -2,6 +2,7 @@
 
 #include "events/Event.hpp"
 #include "core/MouseCodes.hpp"
+#include <sstream>
 
 namespace Qi {
 

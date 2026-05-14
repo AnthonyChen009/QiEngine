@@ -2,6 +2,7 @@
 #include "QiEngine.hpp"
 #include "core/Application.hpp"
 #include "imgui.h"
+#include "events/VsyncEvent.hpp"
 
 SandboxLayer::SandboxLayer()
     : Layer("SandboxLayer")
@@ -102,11 +103,14 @@ void SandboxLayer::onImGuiRender() {
     }
 
     if (ImGui::CollapsingHeader("Window")) {
-        static bool vsync = true;
+        static bool vsync = false;
 
         ImGui::Text("API: Vulkan");
         ImGui::Text("Resolution: 1280 x 720");
-        ImGui::Checkbox("VSync", &vsync);
+        if (ImGui::Checkbox("VSync", &vsync)) {
+            Qi::VSyncEvent event(vsync);
+            Qi::Application::get().onEvent(event);
+        }
     }
 
     if (ImGui::CollapsingHeader("Assets")) {

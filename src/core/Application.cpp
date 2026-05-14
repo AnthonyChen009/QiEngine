@@ -5,7 +5,8 @@
 #include "renderer/vulkan/VulkanRenderer.hpp"
 #include "utils/Time.hpp"
 #include "renderer/Renderer.hpp"
-#include "renderer/Renderer2D.hpp"
+#include "renderer/Renderer.hpp"
+
 
 namespace Qi {
 
@@ -23,7 +24,7 @@ Application::Application(const ApplicationSpecification& specification) : m_spec
     m_window->setEventCallback(QI_BIND_EVENT_FN(Application::onEvent));
 
 
-    Renderer2D::init(*m_window, m_specification.graphicsAPI);
+    Renderer::init(*m_window, m_specification.graphicsAPI);
 
     m_imGuiLayer = new ImGuiLayer();
 
@@ -33,7 +34,7 @@ Application::Application(const ApplicationSpecification& specification) : m_spec
 Application::~Application() {
     m_layerStack.popLayer(m_imGuiLayer); // remove from stack first
     m_imGuiLayer->onDetach();
-    Renderer2D::shutdown();
+    Renderer::shutdown();
 }
 
 void Application::run() {
@@ -45,12 +46,10 @@ void Application::run() {
 
         if (!m_minimized) {
             float renderStart = Time::getTime();
-            if (!Renderer2D::beginFrame())
+            if (!Renderer::beginFrame())
                 continue;
             if (m_minimized)
                 continue;
-            Renderer2D::updateUniformBuffer();
-            Renderer2D::bindPipeline();
 
             float updateStart = Time::getTime();
 
@@ -66,7 +65,7 @@ void Application::run() {
                 layer->onImGuiRender();
             m_imGuiLayer->end();
 
-            Renderer2D::endFrame();
+            Renderer::endFrame();
 
             float renderEnd = Time::getTime();
             m_renderTimeMs = (renderEnd - renderStart) * 1000.0;
@@ -89,6 +88,7 @@ void Application::onEvent(Event& event) {
 	EventDispatcher dispatcher(event);
 	dispatcher.dispatch<WindowCloseEvent>(QI_BIND_EVENT_FN(Application::onWindowClose));
 	dispatcher.dispatch<WindowResizeEvent>(QI_BIND_EVENT_FN(Application::onWindowResize));
+	dispatcher.dispatch<VSyncEvent>(QI_BIND_EVENT_FN(Application::onVSync));
 
 	for (auto it = m_layerStack.end(); it != m_layerStack.begin(); ){
 		(*--it)->onEvent(event);
@@ -104,6 +104,11 @@ bool Application::onWindowClose(WindowCloseEvent& e) {
 	return true;
 }
 
+bool Application::onVSync(VSyncEvent& e) {
+    Renderer::setVSync(e.isEnabled());
+    return true;
+}
+
 bool Application::onWindowResize(WindowResizeEvent& e) {
 
     if (e.getWidth() == 0 || e.getHeight() == 0) {
@@ -113,7 +118,7 @@ bool Application::onWindowResize(WindowResizeEvent& e) {
 
     m_minimized = false;
 
-    Renderer2D::onWindowResize(e.getWidth(), e.getHeight());
+    Renderer::onWindowResize(e.getWidth(), e.getHeight());
 
     return false;
 }

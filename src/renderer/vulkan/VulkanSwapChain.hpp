@@ -18,7 +18,7 @@ public:
     const std::vector<VkImage>& getImages() const;
     const std::vector<VkImageView>& getImageViews() const;
     void recreate(Window& window);
-
+    void setVSync(bool isVSync);
 private:
     void createSwapChain(Window& window, VkSwapchainKHR oldSwapChain = VK_NULL_HANDLE);
     void createImageViews();
@@ -36,6 +36,7 @@ private:
     VkFormat m_swapChainImageFormat = VK_FORMAT_UNDEFINED;
     VkExtent2D m_swapChainExtent = {0, 0};
     std::vector<VkImageView> m_swapChainImageViews;
+    bool m_isVSync = false;
 };
 
 }

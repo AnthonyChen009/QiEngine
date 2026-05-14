@@ -2,12 +2,11 @@
 #include "VulkanGraphicsPipeline.hpp"
 #include "core/Assert.hpp"
 #include "core/FileSystem.hpp"
-#include "renderer/types/Vertex.hpp"
+#include "types/Vertex.hpp"
 
 namespace Qi {
 
-VulkanGraphicsPipeline::VulkanGraphicsPipeline(VkDevice device, VkRenderPass renderPass)
-    : m_device(device) {
+VulkanGraphicsPipeline::VulkanGraphicsPipeline(VkDevice device, VkRenderPass renderPass, VulkanUtils::PipelineType type) : m_device(device), m_type(type) {
     createDescriptorSetLayout();
     createGraphicsPipeline(renderPass);
 }
@@ -80,8 +79,15 @@ void VulkanGraphicsPipeline::createDescriptorSetLayout() {
 }
 
 void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
-    std::vector<char> vertShaderCode = FileSystem::readBinaryFile("shaders/vert.spv");
-    std::vector<char> fragShaderCode = FileSystem::readBinaryFile("shaders/frag.spv");
+    std::vector<char> vertShaderCode, fragShaderCode;
+    if (m_type == VulkanUtils::PipelineType::Pipeline2D) {
+        vertShaderCode = FileSystem::readBinaryFile("shaders/vert2D.spv");
+        fragShaderCode = FileSystem::readBinaryFile("shaders/frag2D.spv");
+    }
+    else {
+        vertShaderCode = FileSystem::readBinaryFile("shaders/vert3D.spv");
+        fragShaderCode = FileSystem::readBinaryFile("shaders/frag3D.spv");
+    }
 
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
     VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -110,8 +116,19 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
 
-    VkVertexInputBindingDescription bindingDescription = Vertex::getBindingDescription();
-    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = Vertex::getAttributeDescriptions();
+    VkVertexInputBindingDescription bindingDescription;
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+
+    if (m_type == VulkanUtils::PipelineType::Pipeline2D) {
+        bindingDescription = Vertex::getBindingDescription();
+        auto attrs = Vertex::getAttributeDescriptions();
+        attributeDescriptions = {attrs.begin(), attrs.end()};
+    }
+    else {
+        bindingDescription = Vertex::getBindingDescription();
+        auto attrs = Vertex::getAttributeDescriptions();
+        attributeDescriptions = {attrs.begin(), attrs.end()};
+    }
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -163,7 +180,19 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
         VK_COLOR_COMPONENT_G_BIT |
         VK_COLOR_COMPONENT_B_BIT |
         VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_FALSE;
+
+    if (m_type == VulkanUtils::PipelineType::Pipeline2D) {
+        colorBlendAttachment.blendEnable = VK_TRUE;
+        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    }
+    else {
+        colorBlendAttachment.blendEnable = VK_FALSE;
+    }
 
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;

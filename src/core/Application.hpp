@@ -9,6 +9,7 @@
 #include "events/ApplicationEvent.hpp"
 #include "core/Assert.hpp"
 #include "imgui/ImGuiLayer.hpp"
+#include "events/VsyncEvent.hpp"
 
 int main(int argc, char** argv);
 
@@ -56,6 +57,7 @@ private:
     void run();
     bool onWindowClose(WindowCloseEvent& e);
 	bool onWindowResize(WindowResizeEvent& e);
+	bool onVSync(VSyncEvent& e);
 private:
     LayerStack m_layerStack;
     ApplicationSpecification m_specification;

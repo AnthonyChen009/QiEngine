@@ -34,7 +34,7 @@ const glm::vec2& Sprite2D::getWorldPosition() const {
 }
 
 void Sprite2D::setTexture(const std::string& path) {
-    QI_CORE_INFO("Setting texture: {0}", path);
+    //QI_CORE_INFO("Setting texture: {0}", path);
     getComponent<SpriteComponent>().texture = Texture2D::load(path);
 }
 

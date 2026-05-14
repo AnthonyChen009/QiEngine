@@ -4,7 +4,7 @@
 #include "VulkanCommands.hpp"
 #include "core/Assert.hpp"
 #include "renderer/vulkan/VulkanSampler.hpp"
-#include <stb/stb_image.h>
+#include <external/stb/stb_image.h>
 
 namespace Qi {
 

@@ -4,10 +4,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(QiEngine STATIC
-    ${CMAKE_SOURCE_DIR}/external/stb/stb_image.cpp
+    ${CMAKE_SOURCE_DIR}/include/external/stb/stb_image.cpp
 )
 
-add_library(glad ${CMAKE_SOURCE_DIR}/external/glad/src/glad.c)
+add_library(glad ${CMAKE_SOURCE_DIR}/include/external/glad/src/glad.c)
 
 add_subdirectory(src/core)
 add_subdirectory(src/platform)
@@ -19,7 +19,7 @@ add_subdirectory(app)
 add_subdirectory(src/imgui)
 
 target_include_directories(glad PUBLIC
-    ${CMAKE_SOURCE_DIR}/external/glad/include
+    ${CMAKE_SOURCE_DIR}/include/external/glad/include
 )
 
 target_include_directories(QiEngine
@@ -53,7 +53,7 @@ FetchContent_Declare(
     entt
     GIT_REPOSITORY https://github.com/skypjack/entt.git
     GIT_TAG v3.16.0
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/entt
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/include/external/entt
 )
 message(STATUS "Fetching EnTT...")
 FetchContent_MakeAvailable(entt)
@@ -64,7 +64,7 @@ FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
     GIT_TAG        docking
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/imgui
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/include/external/imgui
 )
 message(STATUS "Fetching ImGui...")
 FetchContent_MakeAvailable(imgui)
