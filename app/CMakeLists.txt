@@ -12,4 +12,10 @@ target_compile_definitions(QiApp PRIVATE
     QI_ASSET_PATH="assets"
 )
 
-file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR}/app)
+if(MSVC)
+    file(COPY ${CMAKE_SOURCE_DIR}/assets
+         DESTINATION ${CMAKE_BINARY_DIR}/app/Debug)
+else()
+    file(COPY ${CMAKE_SOURCE_DIR}/assets
+         DESTINATION ${CMAKE_BINARY_DIR}/app)
+endif()

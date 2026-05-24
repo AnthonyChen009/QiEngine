@@ -2,7 +2,7 @@
 #include "Window.hpp"
 
 #ifdef QI_PLATFORM_WINDOWS
-	#include "Platform/Windows/WindowsWindow.h"
+	#include "Platform/Windows/WindowsWindow.hpp"
 #endif
 
 #ifdef QI_PLATFORM_LINUX
@@ -12,7 +12,7 @@
 namespace Qi
 {
 	Scope<Window> Window::create(const WindowProps& props) {
-	#ifdef HZ_PLATFORM_WINDOWS
+	#ifdef QI_PLATFORM_WINDOWS
 		return createScope<WindowsWindow>(props);
 	#else
 	    return createScope<LinuxWindow>(props);

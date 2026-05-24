@@ -489,7 +489,7 @@ void VulkanRenderer::initImGui(Window* window) {
     GLFWwindow* nativeWindow = static_cast<GLFWwindow*>(window->getNativeWindow());
 
     ImGui_ImplVulkan_InitInfo initInfo{};
-    initInfo.ApiVersion = VK_API_VERSION_1_3;
+    initInfo.ApiVersion = VK_API_VERSION_1_4;
     initInfo.Instance = m_instance.getVkInstance();
     initInfo.PhysicalDevice = m_vulkanDevice->getPhysicalDevice();
     initInfo.Device = m_vulkanDevice->getDevice();
@@ -508,6 +508,7 @@ void VulkanRenderer::initImGui(Window* window) {
 
     ImGui_ImplGlfw_InitForVulkan(nativeWindow, true);
     ImGui_ImplVulkan_Init(&initInfo);
+
 }
 
 void VulkanRenderer::shutdownImGui() {
@@ -529,14 +530,14 @@ void VulkanRenderer::renderImGui() {
 
 void VulkanRenderer::createImGuiDescriptorPool() {
     VkDescriptorPoolSize poolSizes[] = {
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 }
     };
     VkDescriptorPoolCreateInfo poolInfo{};
-    poolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    poolInfo.maxSets       = 1000;
+    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    poolInfo.maxSets = 1000;
     poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes    = poolSizes;
+    poolInfo.pPoolSizes = poolSizes;
 
     VkResult result = vkCreateDescriptorPool(m_vulkanDevice->getDevice(), &poolInfo, nullptr, &m_imguiDescriptorPool);
     QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create ImGui descriptor pool!");

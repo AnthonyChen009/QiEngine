@@ -4,22 +4,22 @@
 #include "scene/2d/Sprite2D.hpp"
 
 void SandboxScene::onReady() {
-    // for (int i = 0; i < 2000; i++) {
-    //     auto* sprite = QiNew<Qi::Sprite2D>("Sprite_" + std::to_string(i));
-    //     addNode(sprite, 0);
-    //     sprite->setTexture("images/textureTest.jpg");
-    //     sprite->setSize(glm::vec2(100, 100));
+    for (int i = 0; i < 2000; i++) {
+        auto* sprite = QiNew<Qi::Sprite2D>("Sprite_" + std::to_string(i));
+        addNode(sprite, 0);
+        sprite->setTexture("images/textureTest.jpg");
+        sprite->setSize(glm::vec2(100, 100));
 
-    //     // spread them out randomly
-    //     float x = ((float)rand() / RAND_MAX) * 1280.0f - 640.0f;
-    //     float y = ((float)rand() / RAND_MAX) * 720.0f - 360.0f;
-    //     sprite->setPosition(glm::vec2(x, y));
+        // spread them out randomly
+        float x = ((float)rand() / RAND_MAX) * 1280.0f - 640.0f;
+        float y = ((float)rand() / RAND_MAX) * 720.0f - 360.0f;
+        sprite->setPosition(glm::vec2(x, y));
 
-    //     sprite->addComponent<Qi::RigidbodyComponent>(glm::vec2{
-    //         ((float)rand() / RAND_MAX) * 400.0f - 200.0f,
-    //         ((float)rand() / RAND_MAX) * 400.0f - 200.0f
-    //     });
-    // }
+        sprite->addComponent<Qi::RigidbodyComponent>(glm::vec2{
+            ((float)rand() / RAND_MAX) * 400.0f - 200.0f,
+            ((float)rand() / RAND_MAX) * 400.0f - 200.0f
+        });
+    }
 }
 
 void SandboxScene::onUpdate(Qi::Timestep ts) {

@@ -13,21 +13,23 @@ namespace Qi {
 Application* Application::s_instance = nullptr;
 
 Application::Application(const ApplicationSpecification& specification) : m_specification(specification) {
-
     QI_CORE_ASSERT(!s_instance, "Application already exists!");
     s_instance = this;
-
-    if (!m_specification.workingDirectory.empty())
-        std::filesystem::current_path(m_specification.workingDirectory);
+    
+    if (!m_specification.workingDirectory.empty()) {
+        if (std::filesystem::exists(m_specification.workingDirectory)) {
+            std::filesystem::current_path(m_specification.workingDirectory);
+        } 
+        else {
+            QI_CORE_ERROR("Working directory does not exist: {0}", m_specification.workingDirectory);
+        }
+    }
 
     m_window = Window::create(WindowProps(m_specification.name, m_specification.windowWidth, m_specification.windowHeight, m_specification.graphicsAPI));
     m_window->setEventCallback(QI_BIND_EVENT_FN(Application::onEvent));
 
-
     Renderer::init(*m_window, m_specification.graphicsAPI);
-
     m_imGuiLayer = new ImGuiLayer();
-
     pushLayer(m_imGuiLayer);
 }
 

@@ -5,6 +5,7 @@
 #include <QiEngine.hpp>
 #include "core/EntryPoint.hpp"
 #include <memory>
+#include <iostream>
 
 class Sandbox : public Qi::Application {
 public:

@@ -135,10 +135,11 @@ VkPresentModeKHR VulkanSwapChain::chooseSwapPresentMode(const std::vector<VkPres
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    for (const VkPresentModeKHR& availablePresentMode : availablePresentModes) {
-        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-            return availablePresentMode;
-        }
+    for (const auto& mode : availablePresentModes) {
+        if (mode == VK_PRESENT_MODE_MAILBOX_KHR) return mode;
+    }
+    for (const auto& mode : availablePresentModes) {
+        if (mode == VK_PRESENT_MODE_IMMEDIATE_KHR) return mode;
     }
 
     return VK_PRESENT_MODE_FIFO_KHR;
