@@ -40,13 +40,57 @@ target_compile_definitions(QiEngine
         $<$<CONFIG:Debug>:QI_ENABLE_ASSERTS>
 )
 
-find_package(glfw3 REQUIRED)
+include(FetchContent)
+
+if(WIN32)
+    FetchContent_Declare(
+        glfw
+        GIT_REPOSITORY https://github.com/glfw/glfw.git
+        GIT_TAG 3.4
+    )
+
+    message(STATUS "Fetching GLFW...")
+    FetchContent_MakeAvailable(glfw)
+    message(STATUS "GLFW ready")
+
+elseif(UNIX)
+    find_package(glfw3 REQUIRED)
+endif()
+
 find_package(Vulkan REQUIRED)
 find_package(OpenGL REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(glm REQUIRED)
 
-include(FetchContent)
+if(WIN32)
+    FetchContent_Declare(
+        spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG v1.17.0
+    )
+
+    message(STATUS "Fetching spdlog...")
+    FetchContent_MakeAvailable(spdlog)
+    message(STATUS "spdlog ready")
+
+elseif(UNIX)
+    find_package(spdlog REQUIRED)
+endif()
+
+if(WIN32)
+    FetchContent_Declare(
+        glm
+        GIT_REPOSITORY https://github.com/g-truc/glm.git
+        GIT_TAG 1.0.3
+    )
+
+    message(STATUS "Fetching glm...")
+    FetchContent_MakeAvailable(glm)
+    message(STATUS "glm ready")
+
+elseif(UNIX)
+    find_package(glm REQUIRED)
+endif()
+
+
 
 # EnTT
 FetchContent_Declare(
