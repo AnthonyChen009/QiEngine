@@ -1,11 +1,11 @@
 #include "Application.hpp"
 #include "Base.hpp"
-#include "renderer/Renderer.hpp"
 #include "Window.hpp"
-#include "renderer/vulkan/VulkanRenderer.hpp"
+#include "core/io/ResourceLoader.hpp"
+#include "scene/Scene.hpp"
+#include "servers/rendering/RenderingServer.hpp"
 #include "utils/Time.hpp"
-#include "renderer/Renderer.hpp"
-#include "renderer/Renderer.hpp"
+
 
 
 namespace Qi {
@@ -15,11 +15,11 @@ Application* Application::s_instance = nullptr;
 Application::Application(const ApplicationSpecification& specification) : m_specification(specification) {
     QI_CORE_ASSERT(!s_instance, "Application already exists!");
     s_instance = this;
-    
+
     if (!m_specification.workingDirectory.empty()) {
         if (std::filesystem::exists(m_specification.workingDirectory)) {
             std::filesystem::current_path(m_specification.workingDirectory);
-        } 
+        }
         else {
             QI_CORE_ERROR("Working directory does not exist: {0}", m_specification.workingDirectory);
         }
@@ -28,15 +28,12 @@ Application::Application(const ApplicationSpecification& specification) : m_spec
     m_window = Window::create(WindowProps(m_specification.name, m_specification.windowWidth, m_specification.windowHeight, m_specification.graphicsAPI));
     m_window->setEventCallback(QI_BIND_EVENT_FN(Application::onEvent));
 
-    Renderer::init(*m_window, m_specification.graphicsAPI);
-    m_imGuiLayer = new ImGuiLayer();
-    pushLayer(m_imGuiLayer);
+    m_renderingServer = createScope<RenderingServer>(*m_window, m_specification.graphicsAPI);
+    m_resourceLoader = createScope<ResourceLoader>(*m_renderingServer);
 }
 
 Application::~Application() {
-    m_layerStack.popLayer(m_imGuiLayer); // remove from stack first
-    m_imGuiLayer->onDetach();
-    Renderer::shutdown();
+
 }
 
 void Application::run() {
@@ -48,26 +45,24 @@ void Application::run() {
 
         if (!m_minimized) {
             float renderStart = Time::getTime();
-            if (!Renderer::beginFrame())
+            if (!m_renderingServer->beginFrame())
                 continue;
             if (m_minimized)
                 continue;
 
             float updateStart = Time::getTime();
 
-            for (Layer* layer : m_layerStack) {
-                layer->onUpdate(timestep);
-            }
+            m_sceneManager.onUpdate(timestep);
+            m_renderingServer->render(m_sceneManager.getCurrentScene());
 
             float updateEnd = Time::getTime();
             m_updateTimeMs = (updateEnd - updateStart) * 1000.0;
 
-            m_imGuiLayer->begin();
-            for (Layer* layer : m_layerStack)
-                layer->onImGuiRender();
-            m_imGuiLayer->end();
+            m_renderingServer->beginImGui();
+            m_renderingServer->getImGuiManager().render(timestep);
+            m_renderingServer->endImGui();
 
-            Renderer::endFrame();
+            m_renderingServer->endFrame();
 
             float renderEnd = Time::getTime();
             m_renderTimeMs = (renderEnd - renderStart) * 1000.0;
@@ -76,14 +71,8 @@ void Application::run() {
     }
 }
 
-void Application::pushLayer(Layer* layer) {
-	m_layerStack.pushLayer(layer);
-	layer->onAttach();
-}
-
-void Application::pushOverlay(Layer* layer) {
-	m_layerStack.pushOverlay(layer);
-	layer->onAttach();
+void Application::setScene(std::unique_ptr<Scene> scene) {
+    m_sceneManager.setScene(std::move(scene));
 }
 
 void Application::onEvent(Event& event) {
@@ -92,13 +81,8 @@ void Application::onEvent(Event& event) {
 	dispatcher.dispatch<WindowResizeEvent>(QI_BIND_EVENT_FN(Application::onWindowResize));
 	dispatcher.dispatch<VSyncEvent>(QI_BIND_EVENT_FN(Application::onVSync));
 
-	for (auto it = m_layerStack.end(); it != m_layerStack.begin(); ){
-		(*--it)->onEvent(event);
-		if (event.handled)
-			break;
-	}
-	if (event.handled)
-		return;
+	m_renderingServer->onEvent(event);
+    m_sceneManager.onEvent(event);
 }
 
 bool Application::onWindowClose(WindowCloseEvent& e) {
@@ -107,7 +91,7 @@ bool Application::onWindowClose(WindowCloseEvent& e) {
 }
 
 bool Application::onVSync(VSyncEvent& e) {
-    Renderer::setVSync(e.isEnabled());
+    m_renderingServer->setVSync(e.isEnabled());
     return true;
 }
 
@@ -120,7 +104,7 @@ bool Application::onWindowResize(WindowResizeEvent& e) {
 
     m_minimized = false;
 
-    Renderer::onWindowResize(e.getWidth(), e.getHeight());
+    m_renderingServer->onWindowResize(e.getWidth(), e.getHeight());
 
     return false;
 }

@@ -1,16 +1,15 @@
 #include "core/Application.hpp"
-#include "SandboxLayer.hpp"
+#include "SandboxScene.hpp"
 #include "core/Window.hpp"
-#include <iostream>
 #include <QiEngine.hpp>
 #include "core/EntryPoint.hpp"
 #include <memory>
-#include <iostream>
+
 
 class Sandbox : public Qi::Application {
 public:
     Sandbox(const Qi::ApplicationSpecification& specification) : Qi::Application(specification){
-        pushLayer(new SandboxLayer());
+        setScene(std::make_unique<SandboxScene>());
     }
     ~Sandbox() {
 

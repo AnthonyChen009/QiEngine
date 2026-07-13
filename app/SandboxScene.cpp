@@ -1,13 +1,15 @@
 #include "SandboxScene.hpp"
 #include "QiEngine.hpp"
+#include "core/Application.hpp"
 #include "os/Memory.hpp"
+
 #include "scene/2d/Sprite2D.hpp"
 
 void SandboxScene::onReady() {
     for (int i = 0; i < 2000; i++) {
         auto* sprite = QiNew<Qi::Sprite2D>("Sprite_" + std::to_string(i));
         addNode(sprite, 0);
-        sprite->setTexture("images/textureTest.jpg");
+        sprite->setTexture(Qi::Application::get().getResourceLoader().Load<Qi::Texture2D>("images/textureTest.jpg"));
         sprite->setSize(glm::vec2(100, 100));
 
         // spread them out randomly

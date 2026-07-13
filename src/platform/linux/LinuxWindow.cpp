@@ -28,6 +28,7 @@ void LinuxWindow::init(const WindowProps& props) {
 	m_data.graphicsAPI = props.graphicsAPI;
 
 	QI_CORE_INFO("Creating window {0} ({1}, {2})", props.title, props.width, props.height);
+	//glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND);
 
 	if (s_glfwWindowCount == 0) {
 		int success = glfwInit();

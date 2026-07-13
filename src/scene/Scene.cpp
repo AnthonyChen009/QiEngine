@@ -194,18 +194,7 @@ void Scene::onTick(Timestep ts) {
     }
     //update child nodes
     updateWorldTransforms(0);
-    // render system
-    Renderer2D::beginScene();
-    auto view = m_registry.view<TransformComponent, SpriteComponent>();
-    for (auto entity : view) {
-        TransformComponent& transform = view.get<TransformComponent>(entity);
-        SpriteComponent& sprite = view.get<SpriteComponent>(entity);
-        if (sprite.texture)
-            Renderer2D::drawTexturedQuad(transform.worldPosition, transform.size, transform.worldRotation, sprite.color, sprite.texture);
-        else
-            Renderer2D::drawQuad(transform.worldPosition, transform.size, transform.worldRotation, sprite.color);
-    }
-    Renderer2D::endScene();
+
 }
 
 void Scene::onEvent(Event& e) {

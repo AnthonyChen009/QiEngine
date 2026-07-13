@@ -31,7 +31,7 @@ public:
 
     void onWindowResize(uint32_t width, uint32_t height) override;
     void onVysncToggle(bool isVSync) override;
-    Texture2D* getOrLoadTexture(const std::string& path) override;
+    std::shared_ptr<Texture2D> getOrLoadTexture(const std::string& path) override;
 public:
     void drawIndexed(uint32_t count) override;
     void updateUniformBuffer() override;
@@ -90,7 +90,7 @@ private:
 
     std::vector<VkFramebuffer> m_swapChainFrameBuffers;
 
-    std::unordered_map<std::string, std::unique_ptr<VulkanTexture>> m_textureCache;
+    std::unordered_map<std::string, std::shared_ptr<VulkanTexture>> m_textureCache;
 
     std::unique_ptr<VulkanVertexBuffer> m_vertexBuffer;
     std::unique_ptr<VulkanIndexBuffer> m_indexBuffer;

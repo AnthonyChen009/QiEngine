@@ -9,21 +9,20 @@ class Renderer {
 public:
     Renderer(GraphicsAPI api);
 
-    static void init(Window& window, GraphicsAPI api);
-    static void shutdown();
+    void init(Window& window, GraphicsAPI api);
+    void shutdown();
 
-    static bool beginFrame();
-    static void endFrame();
-    static void drawQuad();
-    static void onWindowResize(uint32_t width, uint32_t height);
-    static void updateUniformBuffer();
-    static void bindPipeline();
-    static void setVSync(bool isVSync);
-    static void drawIndexed();
-    static RendererBackend* getBackend();
+    bool beginFrame();
+    void endFrame();
+    void drawQuad();
+    void onWindowResize(uint32_t width, uint32_t height);
+    void updateUniformBuffer();
+    void bindPipeline();
+    void setVSync(bool isVSync);
+    void drawIndexed();
+    RendererBackend* getBackend();
 
 private:
-    static Scope<Renderer> s_instance;
     Scope<RendererBackend> m_backend;
 };
 

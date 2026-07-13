@@ -435,11 +435,11 @@ void VulkanRenderer::pushConstants2D(const PushConstant2D& push) {
     );
 }
 
-Texture2D* VulkanRenderer::getOrLoadTexture(const std::string& path) {
+std::shared_ptr<Texture2D> VulkanRenderer::getOrLoadTexture(const std::string& path) {
 
     auto it = m_textureCache.find(path);
     if (it != m_textureCache.end())
-        return it->second.get();
+        return it->second;
 
     auto texture = std::make_unique<VulkanTexture>(
         m_vulkanDevice->getDevice(),
@@ -472,9 +472,8 @@ Texture2D* VulkanRenderer::getOrLoadTexture(const std::string& path) {
         vkUpdateDescriptorSets(m_vulkanDevice->getDevice(), 1, &write, 0, nullptr);
     }
 
-    Texture2D* ptr = texture.get();
     m_textureCache[path] = std::move(texture);
-    return ptr;
+    return m_textureCache[path];
 }
 
 void VulkanRenderer::initImGui(Window* window) {

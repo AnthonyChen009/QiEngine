@@ -1,34 +1,35 @@
-#include "SandboxLayer.hpp"
-#include "QiEngine.hpp"
+#include "ImGuiManager.hpp"
+
 #include "core/Application.hpp"
 #include "imgui.h"
-#include "events/VsyncEvent.hpp"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
 
-SandboxLayer::SandboxLayer()
-    : Layer("SandboxLayer")
-{
-}
 
-void SandboxLayer::onAttach() {
-    m_scene = QiNew<SandboxScene>();
-    m_scene->onReady();
-}
+namespace Qi {
 
-void SandboxLayer::onDetach() {
-    QiDelete(m_scene);
-    m_scene = nullptr;
-}
-
-void SandboxLayer::onUpdate(Qi::Timestep ts) {
-    m_timeStep = ts.GetSeconds();
-    m_scene->onTick(ts);
+ImGuiManager::ImGuiManager(Window& window, Renderer& renderer) : m_window(window), m_renderer(renderer) {
 
 }
-void SandboxLayer::onEvent(Qi::Event& e) {
-    m_scene->onEvent(e);
+
+void ImGuiManager::init() {
+    m_renderer.getBackend()->initImGui(&m_window);
 }
 
-void SandboxLayer::onImGuiRender() {
+void ImGuiManager::shutdown() {
+    m_renderer.getBackend()->shutdownImGui();
+}
+
+void ImGuiManager::begin() {
+    m_renderer.getBackend()->beginImGuiFrame();
+}
+
+void ImGuiManager::end() {
+    m_renderer.getBackend()->renderImGui();
+}
+
+void ImGuiManager::render(Timestep ts) {
+    ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
     ImGui::Begin("Debug");
 
     static float fpsHistory[100] = {};
@@ -37,10 +38,10 @@ void SandboxLayer::onImGuiRender() {
 
     static float sampleTimer = 0.0f;
 
-    float fps = 1.0f / m_timeStep;
-    float ft = m_timeStep * 1000.0f;
+    float fps = 1.0f / ts.getSeconds();
+    float ft = ts.getSeconds() * 1000.0f;
 
-    sampleTimer += m_timeStep;
+    sampleTimer += ts.getSeconds();
 
     if (sampleTimer >= 0.1f) { // sample 10x/sec
         fpsHistory[offset] = fps;
@@ -135,6 +136,25 @@ void SandboxLayer::onImGuiRender() {
         ImGui::Checkbox("Sprite Bounds", &showBounds);
         ImGui::Checkbox("Transform Gizmos", &showGizmos);
     }
-
     ImGui::End();
+}
+
+void ImGuiManager::onEvent(Event& event) {
+
+    if (m_blockEvents) {
+        ImGuiIO& io = ImGui::GetIO();
+        event.handled |= event.isInCategory(eventCategoryMouse) & io.WantCaptureMouse;
+        event.handled |= event.isInCategory(eventCategoryKeyboard) & io.WantCaptureKeyboard;
+    }
+}
+
+void ImGuiManager::setDarkThemeColors() {
+    ImGui::StyleColorsDark();
+}
+
+uint32_t ImGuiManager::getActiveWidgetID() const {
+    // TODO: Return active widget ID if needed
+    return 0;
+}
+
 }
