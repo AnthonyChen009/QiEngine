@@ -86,8 +86,8 @@ private:
     Event& m_event;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const Event& e) {
-    return os << e.toString();
+inline std::ostream& operator<<(std::ostream& os, const Event& event) {
+    return os << event.toString();
 }
 
 }

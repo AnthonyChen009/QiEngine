@@ -5,6 +5,8 @@
 #include "core/Log.hpp"
 #include "core/Assert.hpp"
 #include <GLFW/glfw3.h>
+#include "events/KeyEvent.hpp"
+#include "events/MouseEvent.hpp"
 
 namespace Qi {
 static uint8_t s_glfwWindowCount = 0;
@@ -71,6 +73,55 @@ void LinuxWindow::init(const WindowProps& props) {
 		if (data.eventCallback)
             data.eventCallback(event);
 	});
+
+	glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+        WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+        switch (action) {
+            case GLFW_PRESS: {
+                KeyPressedEvent event(key, false);
+                if (data.eventCallback) data.eventCallback(event);
+                break;
+            }
+            case GLFW_RELEASE: {
+                KeyReleasedEvent event(key);
+                if (data.eventCallback) data.eventCallback(event);
+                break;
+            }
+            case GLFW_REPEAT: {
+                KeyPressedEvent event(key, true);
+                if (data.eventCallback) data.eventCallback(event);
+                break;
+            }
+        }
+    });
+
+    glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int mods) {
+        WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+        switch (action) {
+            case GLFW_PRESS: {
+                MouseButtonPressedEvent event(button);
+                if (data.eventCallback) data.eventCallback(event);
+                break;
+            }
+            case GLFW_RELEASE: {
+                MouseButtonReleasedEvent event(button);
+                if (data.eventCallback) data.eventCallback(event);
+                break;
+            }
+        }
+    });
+
+    glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double xPos, double yPos) {
+        WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+        MouseMovedEvent event((float)xPos, (float)yPos);
+        if (data.eventCallback) data.eventCallback(event);
+    });
+
+    glfwSetScrollCallback(m_window, [](GLFWwindow* window, double xOffset, double yOffset) {
+        WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+        MouseScrolledEvent event((float)xOffset, (float)yOffset);
+        if (data.eventCallback) data.eventCallback(event);
+    });
 
 	glfwShowWindow(m_window);
 }

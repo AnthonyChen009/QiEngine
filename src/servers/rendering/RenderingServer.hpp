@@ -21,9 +21,12 @@ public:
     void endImGui();
     void onWindowResize(unsigned int x, unsigned int y);
     void setVSync(bool enabled);
-    void onEvent(Qi::Event& e);
+    void onEvent(Qi::Event& event);
     std::shared_ptr<Texture2D> createTexture2D(const std::string& path);
     ImGuiManager& getImGuiManager();
+private:
+    void render2D();
+    void render3D();
 private:
     Scope<Renderer> m_renderer;
     Scope<Renderer2D> m_renderer2D;

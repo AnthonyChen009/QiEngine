@@ -53,8 +53,8 @@ void RenderingServer::onWindowResize(unsigned int x, unsigned int y) {
     m_renderer->onWindowResize(x, y);
 }
 
-void RenderingServer::onEvent(Qi::Event& e) {
-    m_imGuiManager->onEvent(e);
+void RenderingServer::onEvent(Qi::Event& event) {
+    m_imGuiManager->onEvent(event);
 }
 
 std::shared_ptr<Texture2D> RenderingServer::createTexture2D(const std::string& path) {

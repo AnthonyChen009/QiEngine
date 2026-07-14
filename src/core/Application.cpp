@@ -5,6 +5,7 @@
 #include "scene/Scene.hpp"
 #include "servers/rendering/RenderingServer.hpp"
 #include "utils/Time.hpp"
+#include <GLFW/glfw3.h>
 
 
 
@@ -67,7 +68,9 @@ void Application::run() {
             float renderEnd = Time::getTime();
             m_renderTimeMs = (renderEnd - renderStart) * 1000.0;
         }
+        m_inputServer.update();
         m_window->onUpdate();
+
     }
 }
 
@@ -83,6 +86,7 @@ void Application::onEvent(Event& event) {
 
 	m_renderingServer->onEvent(event);
     m_sceneManager.onEvent(event);
+    m_inputServer.onEvent(event);
 }
 
 bool Application::onWindowClose(WindowCloseEvent& e) {

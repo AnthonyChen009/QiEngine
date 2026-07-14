@@ -1,10 +1,11 @@
 #include "ImGuiManager.hpp"
 
 #include "core/Application.hpp"
+#include "core/Log.hpp"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
-
+#include "core/input/Input.hpp"
 
 namespace Qi {
 
@@ -29,6 +30,14 @@ void ImGuiManager::end() {
 }
 
 void ImGuiManager::render(Timestep ts) {
+    if (Input::isKeyJustPressed(Key::F1)) {
+        toggleVisible();
+    }
+
+    if (!m_visible) {
+        return;
+    }
+
     ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
     ImGui::Begin("Debug");
 

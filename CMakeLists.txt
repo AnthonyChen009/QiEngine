@@ -108,7 +108,7 @@ message(STATUS "EnTT ready")
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG        docking
+    GIT_TAG docking
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/include/external/imgui
 )
 message(STATUS "Fetching ImGui...")

@@ -29,10 +29,15 @@ public:
 
     uint32_t getActiveWidgetID() const;
 
+    void setVisible(bool visible) { m_visible = visible; }
+    bool isVisible() const { return m_visible; }
+    void toggleVisible() { m_visible = !m_visible; }
+
 private:
     bool m_blockEvents = true;
     Window& m_window;
     Renderer& m_renderer;
+    bool m_visible = true;
 };
 
 }

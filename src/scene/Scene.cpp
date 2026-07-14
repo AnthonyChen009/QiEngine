@@ -197,10 +197,10 @@ void Scene::onTick(Timestep ts) {
 
 }
 
-void Scene::onEvent(Event& e) {
+void Scene::onEvent(Event& event) {
     for (Node* node : m_nodes) {
         if (node)
-            node->onEvent(e);
+            node->onEvent(event);
     }
 
     processDestroyQueue();

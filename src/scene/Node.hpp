@@ -21,7 +21,7 @@ public:
 
     virtual void onReady() {}
     virtual void onUpdate(Timestep ts) {}
-    virtual void onEvent(Event& e) {}
+    virtual void onEvent(Event& event) {}
 
     void destroy();
     void addChild(Node* node);

@@ -24,7 +24,7 @@ public:
     virtual void onReady() {}
     virtual void onUpdate(Timestep ts);
     void onTick(Timestep ts);
-    virtual void onEvent(Event& e);
+    virtual void onEvent(Event& event);
 
     Node* getNode(int32_t index) { return m_nodes[index]; }
     const std::vector<Node*>& getNodes() const { return m_nodes; }

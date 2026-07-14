@@ -11,6 +11,7 @@
 #include "managers/imgui/ImGuiManager.hpp"
 #include "managers/scene/SceneManager.hpp"
 #include "scene/Scene.hpp"
+#include "servers/input/InputServer.hpp"
 #include "servers/rendering/RenderingServer.hpp"
 
 int main(int argc, char** argv);
@@ -40,13 +41,14 @@ public:
     Application(const ApplicationSpecification& specification);
     virtual ~Application();
 
-    void onEvent(Event& e);
+    void onEvent(Event& event);
 
 	void setScene(std::unique_ptr<Scene> scene);
 
 	Window& getWindow() { return *m_window; }
 	RenderingServer& getRenderingServer() { return *m_renderingServer; }
 	ResourceLoader& getResourceLoader() { return *m_resourceLoader; }
+	InputServer& getInputServer () { return m_inputServer; }
 
     const ApplicationSpecification& GetSpecification() const { return m_specification; }
 
@@ -62,6 +64,7 @@ private:
 	bool onVSync(VSyncEvent& e);
 private:
     SceneManager m_sceneManager;
+    InputServer m_inputServer;
     ApplicationSpecification m_specification;
     Scope<Window> m_window;
     Scope<RenderingServer> m_renderingServer;

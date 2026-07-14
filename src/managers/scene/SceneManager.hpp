@@ -8,7 +8,7 @@ public:
     void setScene(std::unique_ptr<Scene> scene);
 
 	void onUpdate(Qi::Timestep ts);
-	void onEvent(Qi::Event& e);
+	void onEvent(Qi::Event& event);
 	Scene& getCurrentScene();
 
 private:

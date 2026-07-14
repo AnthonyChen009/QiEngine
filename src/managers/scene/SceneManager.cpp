@@ -24,10 +24,9 @@ Scene& SceneManager::getCurrentScene() {
     return *m_currentScene;
 }
 
-void SceneManager::onEvent(Qi::Event& e) {
+void SceneManager::onEvent(Qi::Event& event) {
     QI_CORE_ASSERT(m_currentScene, "No active scene!");
-    m_currentScene->onEvent(e);
-
+    m_currentScene->onEvent(event);
 }
 
 }
