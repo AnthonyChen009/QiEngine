@@ -4,6 +4,7 @@
 #include "os/Memory.hpp"
 #include "core/Assert.hpp"
 #include <algorithm>
+#include <glm/ext/matrix_transform.hpp>
 #include <stack>
 
 namespace Qi {
@@ -12,6 +13,11 @@ struct TransformStackEntry {
     int32_t nodeIndex;
     glm::vec2 parentPos;
     float parentRot;
+};
+
+struct TransformStackEntry3D {
+    int32_t nodeIndex;
+    glm::mat4 parentTransform;
 };
 
 Scene::Scene() {
@@ -127,7 +133,7 @@ void Scene::destroyNode(int32_t index) {
     }
 }
 
-void Scene::updateWorldTransforms(int32_t rootIndex) {
+void Scene::updateWorldTransforms2D(int32_t rootIndex) {
     std::vector<TransformStackEntry> stack;
     stack.push_back({rootIndex, {0.0f, 0.0f}, 0.0f});
     while (!stack.empty()) {
@@ -138,11 +144,12 @@ void Scene::updateWorldTransforms(int32_t rootIndex) {
         if (!node)
             continue;
 
+        //2D
         glm::vec2 worldPos = entry.parentPos;
         float worldRot = entry.parentRot;
 
         if (node->hasComponent<TransformComponent>()) {
-            auto& transform = node->getComponent<TransformComponent>();
+            TransformComponent& transform = node->getComponent<TransformComponent>();
 
             transform.worldPosition =
                 entry.parentPos + transform.position;
@@ -159,6 +166,37 @@ void Scene::updateWorldTransforms(int32_t rootIndex) {
                 childIndex,
                 worldPos,
                 worldRot
+            });
+        }
+    }
+}
+
+void Scene::updateWorldTransforms3D(int32_t rootIndex) {
+    std::vector<TransformStackEntry3D> stack;
+    stack.push_back({rootIndex, glm::mat4(1.0f)});
+
+    while (!stack.empty()) {
+        TransformStackEntry3D entry = stack.back();
+        stack.pop_back();
+
+        Node* node = m_nodes[entry.nodeIndex];
+        if (!node)
+            continue;
+
+        glm::mat4 worldTransform = entry.parentTransform;
+
+        if (node->hasComponent<Transform3DComponent>()) {
+            Transform3DComponent& transform = node->getComponent<Transform3DComponent>();
+            transform.localTransform = glm::translate(glm::mat4(1.0f), transform.position) * glm::mat4_cast(transform.rotation) * glm::scale(glm::mat4(1.0f), transform.scale);
+            transform.worldTransform = entry.parentTransform * transform.localTransform;
+
+            worldTransform = transform.worldTransform;
+        }
+
+        for (int32_t childIndex : node->m_childIndices) {
+            stack.push_back({
+                childIndex,
+                worldTransform
             });
         }
     }
@@ -192,9 +230,12 @@ void Scene::onTick(Timestep ts) {
         RigidbodyComponent& rb = moveView.get<RigidbodyComponent>(entity);
         transform.position += rb.velocity * (float)ts;
     }
-    //update child nodes
-    updateWorldTransforms(0);
 
+    //transform system
+
+    //update child nodes
+    updateWorldTransforms2D(0);
+    updateWorldTransforms3D(0);
 }
 
 void Scene::onEvent(Event& event) {

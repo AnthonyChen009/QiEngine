@@ -4,6 +4,7 @@
 #include "renderer/Renderer.hpp"
 #include "renderer/Renderer2D.hpp"
 #include "managers/imgui/ImGuiManager.hpp"
+#include "renderer/Renderer3D.hpp"
 #include "renderer/vulkan/Texture2D.hpp"
 #include "scene/Scene.hpp"
 #include <memory>
@@ -25,11 +26,12 @@ public:
     std::shared_ptr<Texture2D> createTexture2D(const std::string& path);
     ImGuiManager& getImGuiManager();
 private:
-    void render2D();
-    void render3D();
+    void render2D(Scene& scene);
+    void render3D(Scene& scene);
 private:
     Scope<Renderer> m_renderer;
     Scope<Renderer2D> m_renderer2D;
+    Scope<Renderer3D> m_renderer3D;
     Scope<ImGuiManager> m_imGuiManager;
 };
 

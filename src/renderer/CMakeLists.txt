@@ -21,6 +21,7 @@ target_sources(QiEngine PRIVATE
 
     Renderer.cpp
     Renderer2D.cpp
+    Renderer3D.cpp
     # opengl/OpenGLRenderer.cpp
     # opengl/OpenGLShader.cpp
     # opengl/OpenGLVertexBuffer.cpp

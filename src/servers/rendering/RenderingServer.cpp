@@ -3,6 +3,7 @@
 #include "managers/imgui/ImGuiManager.hpp"
 #include "renderer/Renderer.hpp"
 #include "renderer/Renderer2D.hpp"
+#include "renderer/Renderer3D.hpp"
 #include "scene/Components.hpp"
 #include <memory>
 
@@ -13,6 +14,7 @@ RenderingServer::RenderingServer(Window& window, GraphicsAPI graphicsAPI) {
     m_renderer->init(window, graphicsAPI);
 
     m_renderer2D = createScope<Renderer2D>(*m_renderer);
+    m_renderer3D = createScope<Renderer3D>(*m_renderer);
 
     m_imGuiManager = createScope<ImGuiManager>(window, *m_renderer);
     m_imGuiManager->init();
@@ -28,6 +30,13 @@ bool RenderingServer::beginFrame() {
 }
 
 void RenderingServer::render(Scene& scene) {
+    //camera stuff
+
+    render3D(scene);
+    //render2D(scene);
+}
+
+void RenderingServer::render2D(Scene& scene) {
     m_renderer2D->beginScene();
     auto view = scene.getRegistry().view<TransformComponent, SpriteComponent>();
     for (auto entity : view) {
@@ -39,6 +48,12 @@ void RenderingServer::render(Scene& scene) {
             m_renderer2D->drawQuad(transform.worldPosition, transform.size, transform.worldRotation, sprite.color);
     }
     m_renderer2D->endScene();
+}
+
+void RenderingServer::render3D(Scene& scene) {
+    m_renderer3D->beginScene();
+    m_renderer3D->drawCube();
+    m_renderer3D->endScene();
 }
 
 void RenderingServer::endFrame() {

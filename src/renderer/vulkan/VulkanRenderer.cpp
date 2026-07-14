@@ -3,7 +3,6 @@
 #include "renderer/vulkan/Texture2D.hpp"
 #include "renderer/vulkan/VulkanGraphicsPipeline.hpp"
 #include "renderer/vulkan/VulkanImage.hpp"
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "renderer/vulkan/VulkanRenderer.hpp"
 #include <cstdint>
 #include <vector>
@@ -19,6 +18,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
 namespace Qi {
 
@@ -348,13 +348,29 @@ void VulkanRenderer::createUniformBuffers() {
     }
 }
 
-void VulkanRenderer::updateUniformBuffer() {
+void VulkanRenderer::updateUniformBuffer2D() {
     UniformBufferObject ubo{};
     ubo.view = glm::mat4(1.0f);
     float width = static_cast<float>(m_swapChain->getExtent().width);
     float height = static_cast<float>(m_swapChain->getExtent().height);
     ubo.proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f, -1.0f, 1.0f);
     ubo.proj[1][1] *= -1;
+    m_uniformBuffers[m_currentFrame]->setData(&ubo, sizeof(ubo));
+}
+
+void VulkanRenderer::updateUniformBuffer3D() {
+    UniformBufferObject ubo{};
+
+    ubo.view = glm::lookAt(
+        glm::vec3(0.0f, 2.0f, 2.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f)
+    );
+
+    float aspect = static_cast<float>(m_swapChain->getExtent().width) / static_cast<float>(m_swapChain->getExtent().height);
+    ubo.proj = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 10.0f);
+    ubo.proj[1][1] *= -1;
+
     m_uniformBuffers[m_currentFrame]->setData(&ubo, sizeof(ubo));
 }
 
@@ -424,13 +440,24 @@ bool VulkanRenderer::hasStencilComponent(VkFormat format) {
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void VulkanRenderer::pushConstants2D(const PushConstant2D& push) {
+void VulkanRenderer::pushConstants2D(const PushConstant& push) {
     vkCmdPushConstants(
         m_commandBuffers[m_currentFrame],
         m_graphicsPipeline2D->getPipelineLayout(),
         VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
         0,
-        sizeof(PushConstant2D),
+        sizeof(PushConstant),
+        &push
+    );
+}
+
+void VulkanRenderer::pushConstants3D(const PushConstant& push) {
+    vkCmdPushConstants(
+        m_commandBuffers[m_currentFrame],
+        m_graphicsPipeline3D->getPipelineLayout(),
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+        0,
+        sizeof(PushConstant),
         &push
     );
 }

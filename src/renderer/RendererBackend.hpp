@@ -19,8 +19,10 @@ public:
     virtual void drawIndexed(uint32_t count) = 0;
     virtual void onWindowResize(uint32_t width, uint32_t height) = 0;
     virtual void onVysncToggle(bool isVSync) {};
-    virtual void updateUniformBuffer() = 0;
-    virtual void pushConstants2D(const PushConstant2D& push) = 0;
+    virtual void updateUniformBuffer2D() = 0;
+    virtual void updateUniformBuffer3D() = 0;
+    virtual void pushConstants2D(const PushConstant& push) = 0;
+    virtual void pushConstants3D(const PushConstant& push) = 0;
     virtual std::shared_ptr<Texture2D> getOrLoadTexture(const std::string& path) = 0;
     virtual void initImGui(Window* window) = 0;
     virtual void shutdownImGui() = 0;

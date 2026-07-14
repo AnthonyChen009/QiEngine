@@ -34,8 +34,10 @@ public:
     std::shared_ptr<Texture2D> getOrLoadTexture(const std::string& path) override;
 public:
     void drawIndexed(uint32_t count) override;
-    void updateUniformBuffer() override;
-    void pushConstants2D(const PushConstant2D& push) override;
+    void updateUniformBuffer2D() override;
+    void updateUniformBuffer3D() override;
+    void pushConstants2D(const PushConstant& push) override;
+    void pushConstants3D(const PushConstant& push) override;
     void initImGui(Window* window) override;
     void shutdownImGui() override;
     void beginImGuiFrame() override;

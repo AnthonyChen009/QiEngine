@@ -1,7 +1,9 @@
 #pragma once
+#include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <string>
 #include "renderer/vulkan/Texture2D.hpp"
+#include <glm/gtc/quaternion.hpp>
 
 namespace Qi {
 
@@ -12,9 +14,7 @@ enum class RotationEditMode {
 };
 
 enum class EulerOrder {
-    Euler,
-    Quaternion,
-    Basis
+    YXZ,
 };
 
 struct TagComponent {
@@ -40,10 +40,12 @@ struct SpriteComponent {
 };
 
 struct Transform3DComponent {
-    glm::vec3 position = {0.0f, 0.0f, 0.0f};
-    glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
-    glm::vec3 scale = {0.0f, 0.0f, 0.0f};
+    glm::vec3 position {0.0f};
+    glm::quat rotation {1.0f, 0.0f, 0.0f, 0.0f};
+    glm::vec3 scale {1.0f};
 
+    glm::mat4 localTransform {1.0f};
+    glm::mat4 worldTransform {1.0f};
 };
 
 }

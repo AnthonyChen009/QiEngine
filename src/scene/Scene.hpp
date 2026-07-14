@@ -30,7 +30,8 @@ public:
     const std::vector<Node*>& getNodes() const { return m_nodes; }
     entt::registry& getRegistry() { return m_registry; }
 private:
-    void updateWorldTransforms(int32_t rootIndex);
+    void updateWorldTransforms2D(int32_t rootIndex);
+    void updateWorldTransforms3D(int32_t rootIndex);
 
 private:
     std::vector<Node*> m_nodes;
