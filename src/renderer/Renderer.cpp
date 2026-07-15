@@ -36,11 +36,11 @@ void Renderer::endFrame() {
 }
 
 void Renderer::updateUniformBuffer2D() {
-    Renderer::getBackend()->updateUniformBuffer2D();
+   getBackend()->updateUniformBuffer2D();
 }
 
-void Renderer::updateUniformBuffer3D() {
-    Renderer::getBackend()->updateUniformBuffer3D();
+void Renderer::updateUniformBuffer3D(UniformBufferObject& ubo) {
+    getBackend()->updateUniformBuffer3D(ubo);
 }
 
 void Renderer::bindPipeline() {

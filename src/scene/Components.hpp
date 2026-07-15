@@ -4,6 +4,9 @@
 #include <string>
 #include "renderer/vulkan/Texture2D.hpp"
 #include <glm/gtc/quaternion.hpp>
+#include <memory>
+#include "renderer/vulkan/Mesh.hpp"
+#include "3d/CameraProperties.hpp"
 
 namespace Qi {
 
@@ -30,8 +33,12 @@ struct TransformComponent {
     float worldRotation = 0.0f;
 };
 
-struct RigidbodyComponent {
+struct Rigidbody2DComponent {
     glm::vec2 velocity = { 0.0f, 0.0f };
+};
+
+struct Rigidbody3DComponent {
+    glm::vec3 velocity = { 0.0f, 0.0f, 0.0f };
 };
 
 struct SpriteComponent {
@@ -46,6 +53,31 @@ struct Transform3DComponent {
 
     glm::mat4 localTransform {1.0f};
     glm::mat4 worldTransform {1.0f};
+
+    void updateLocalTransform() {
+        localTransform =
+            glm::translate(glm::mat4(1.0f), position) *
+            glm::mat4_cast(rotation) *
+            glm::scale(glm::mat4(1.0f), scale);
+    }
+};
+
+struct Camera3DComponent {
+    CameraProperties properties;
+    float aspectRatio = 16.0f / 9.0f;
+    glm::mat4 projection{ 1.0f };
+    glm::mat4 view{ 1.0f };
+    glm::mat4 inverseProjection{ 1.0f };
+	glm::mat4 inverseView{ 1.0f };
+	glm::vec3 forwardDirection{0.0f, 0.0f, 0.0f};
+	bool isDirty = true;
+	float viewportWidth = 1280.0f;
+    float viewportHeight = 720.0f;
+};
+
+struct MeshComponent {
+    std::shared_ptr<Mesh> mesh;
+    //scale here later maybe
 };
 
 }

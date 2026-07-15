@@ -13,7 +13,7 @@ namespace Qi {
 
 Application* Application::s_instance = nullptr;
 
-Application::Application(const ApplicationSpecification& specification) : m_specification(specification) {
+Application::Application(const ApplicationSpecification& specification) : m_specification(specification), m_sceneManager(specification.windowWidth, specification.windowHeight) {
     QI_CORE_ASSERT(!s_instance, "Application already exists!");
     s_instance = this;
 

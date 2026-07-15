@@ -17,7 +17,7 @@ public:
     void drawQuad();
     void onWindowResize(uint32_t width, uint32_t height);
     void updateUniformBuffer2D();
-    void updateUniformBuffer3D();
+    void updateUniformBuffer3D(UniformBufferObject& ubo);
     void bindPipeline();
     void setVSync(bool isVSync);
     void drawIndexed();

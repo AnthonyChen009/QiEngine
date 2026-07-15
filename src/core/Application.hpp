@@ -63,12 +63,12 @@ private:
 	bool onWindowResize(WindowResizeEvent& e);
 	bool onVSync(VSyncEvent& e);
 private:
-    SceneManager m_sceneManager;
+    Scope<Window> m_window;
     InputServer m_inputServer;
     ApplicationSpecification m_specification;
-    Scope<Window> m_window;
     Scope<RenderingServer> m_renderingServer;
     Scope<ResourceLoader> m_resourceLoader;
+    SceneManager m_sceneManager;
     bool m_running = true;
     bool m_minimized = false;
     float m_lastFrameTime = 0.0f;

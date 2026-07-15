@@ -1,6 +1,7 @@
 #include "renderer/vulkan/VulkanIndexBuffer.hpp"
 #include "renderer/vulkan/VulkanBuffer.hpp"
 #include "renderer/vulkan/VulkanCommands.hpp"
+#include <vulkan/vulkan_core.h>
 
 namespace Qi {
 
@@ -25,10 +26,14 @@ VulkanIndexBuffer::VulkanIndexBuffer(VkDevice device, VkPhysicalDevice physicalD
     );
 
 }
+bool VulkanIndexBuffer::isBufferValid() const {
+    return m_buffer.getBuffer() != VK_NULL_HANDLE;
+}
 
-void VulkanIndexBuffer::bind(VkCommandBuffer commandBuffer) {
+void VulkanIndexBuffer::bind(CommandBufferHandle commandBuffer) const {
+    VkCommandBuffer vkCmdBuffer = static_cast<VkCommandBuffer>(commandBuffer);
     vkCmdBindIndexBuffer(
-        commandBuffer,
+        vkCmdBuffer,
         m_buffer.getBuffer(),
         0,
         VK_INDEX_TYPE_UINT32

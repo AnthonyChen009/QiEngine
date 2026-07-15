@@ -10,6 +10,7 @@
 #include "VulkanVertexBuffer.hpp"
 #include "VulkanIndexBuffer.hpp"
 #include "VulkanUniformBuffer.hpp"
+#include "renderer/types/UniformBufferObject.hpp"
 #include "renderer/vulkan/VulkanDevice.hpp"
 #include "renderer/vulkan/VulkanGraphicsPipeline.hpp"
 #include "renderer/vulkan/VulkanInstance.hpp"
@@ -35,7 +36,7 @@ public:
 public:
     void drawIndexed(uint32_t count) override;
     void updateUniformBuffer2D() override;
-    void updateUniformBuffer3D() override;
+    void updateUniformBuffer3D(UniformBufferObject& ubo) override;
     void pushConstants2D(const PushConstant& push) override;
     void pushConstants3D(const PushConstant& push) override;
     void initImGui(Window* window) override;
@@ -43,6 +44,11 @@ public:
     void beginImGuiFrame() override;
     void renderImGui() override;
     void bindPipeline(VulkanUtils::PipelineType type) override;
+    void bindBuffers(const VertexBuffer& vertexBuffer, const IndexBuffer& indexBuffer) override;
+
+    std::shared_ptr<VertexBuffer> createVertexBuffer(const std::vector<Vertex>& vertices) override;
+    std::shared_ptr<IndexBuffer> createIndexBuffer(const std::vector<uint32_t>& indices) override;
+
 private:
     void createInstance(const std::string& appName);
     void pickPhysicalDevice();
@@ -94,9 +100,11 @@ private:
 
     std::unordered_map<std::string, std::shared_ptr<VulkanTexture>> m_textureCache;
 
-    std::unique_ptr<VulkanVertexBuffer> m_vertexBuffer;
-    std::unique_ptr<VulkanIndexBuffer> m_indexBuffer;
-    std::vector<std::unique_ptr<VulkanUniformBuffer>> m_uniformBuffers;
+    const VertexBuffer* m_boundVertexBuffer = nullptr;
+    const IndexBuffer* m_boundIndexBuffer = nullptr;
+
+    std::vector<std::unique_ptr<VulkanUniformBuffer>> m_uniformBuffers2D;
+    std::vector<std::unique_ptr<VulkanUniformBuffer>> m_uniformBuffers3D;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> m_descriptorSets2D;

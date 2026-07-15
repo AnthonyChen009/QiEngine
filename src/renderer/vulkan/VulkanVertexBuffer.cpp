@@ -24,10 +24,15 @@ VulkanVertexBuffer::VulkanVertexBuffer(VkDevice device, VkPhysicalDevice physica
     );
 }
 
-void VulkanVertexBuffer::bind(VkCommandBuffer commandBuffer) {
+bool VulkanVertexBuffer::isBufferValid() const{
+    return m_buffer.getBuffer() != VK_NULL_HANDLE;
+}
+
+void VulkanVertexBuffer::bind(CommandBufferHandle commandBuffer) const {
+    VkCommandBuffer vkCmdBuffer = static_cast<VkCommandBuffer>(commandBuffer);
     VkBuffer buffers[] = { m_buffer.getBuffer() };
     VkDeviceSize offsets[] = { 0 };
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offsets);
+    vkCmdBindVertexBuffers(vkCmdBuffer, 0, 1, buffers, offsets);
 }
 
 VulkanVertexBuffer::~VulkanVertexBuffer() {

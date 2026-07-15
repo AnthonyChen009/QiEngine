@@ -5,7 +5,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
-#include "core/input/Input.hpp"
+#include "core/api/Input.hpp"
 
 namespace Qi {
 

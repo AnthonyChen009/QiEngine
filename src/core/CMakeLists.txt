@@ -3,5 +3,7 @@ target_sources(QiEngine PRIVATE
     Log.cpp
     Window.cpp
     FileSystem.cpp
-    input/Input.cpp
+    api/Input.cpp
+    api/MeshPrimitives.cpp
+    io/ResourceLoader.cpp
 )

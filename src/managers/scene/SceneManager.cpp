@@ -3,6 +3,10 @@
 #include "core/Assert.hpp"
 namespace Qi {
 
+SceneManager::SceneManager(uint32_t width, uint32_t height) : m_initalWidth(width), m_initialHeight(height){
+
+}
+
 void SceneManager::setScene(std::unique_ptr<Scene> scene) {
     m_currentScene.reset();
 
@@ -10,7 +14,7 @@ void SceneManager::setScene(std::unique_ptr<Scene> scene) {
 
     QI_CORE_ASSERT(m_currentScene, "No active scene!");
     m_currentScene->onReady();
-
+    m_currentScene->initialSize(m_initalWidth, m_initialHeight);
 }
 
 void SceneManager::onUpdate(Qi::Timestep ts) {

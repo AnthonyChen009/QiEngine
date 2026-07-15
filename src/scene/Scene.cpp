@@ -3,6 +3,7 @@
 #include "renderer/Renderer2D.hpp"
 #include "os/Memory.hpp"
 #include "core/Assert.hpp"
+#include "scene/3d/Camera3D.hpp"
 #include <algorithm>
 #include <glm/ext/matrix_transform.hpp>
 #include <stack>
@@ -203,9 +204,16 @@ void Scene::updateWorldTransforms3D(int32_t rootIndex) {
 }
 
 void Scene::processDestroyQueue() {
-    for (int32_t index : m_destroyQueue)
-        destroyNode(index);
+    for (int32_t index : m_destroyQueue) {
+        Node* node = m_nodes[index];
+        if (!node)
+            continue;
 
+        if (node == m_activeCamera)
+            m_activeCamera = nullptr;
+
+        destroyNode(index);
+    }
     m_destroyQueue.clear();
 }
 
@@ -224,18 +232,33 @@ void Scene::onTick(Timestep ts) {
     processDestroyQueue();
 
     // movement system
-    auto moveView = m_registry.view<TransformComponent, RigidbodyComponent>();
+    auto moveView = m_registry.view<TransformComponent, Rigidbody2DComponent>();
     for (auto entity : moveView) {
         TransformComponent& transform = moveView.get<TransformComponent>(entity);
-        RigidbodyComponent& rb = moveView.get<RigidbodyComponent>(entity);
+        Rigidbody2DComponent& rb = moveView.get<Rigidbody2DComponent>(entity);
         transform.position += rb.velocity * (float)ts;
     }
 
+    auto moveView3D = m_registry.view<Transform3DComponent, Rigidbody3DComponent>();
+    for (auto entity : moveView3D) {
+        Transform3DComponent& transform = moveView3D.get<Transform3DComponent>(entity);
+        Rigidbody3DComponent& rb = moveView3D.get<Rigidbody3DComponent>(entity);
+        transform.position += rb.velocity * (float)ts;
+        transform.updateLocalTransform();
+    }
     //transform system
 
     //update child nodes
     updateWorldTransforms2D(0);
     updateWorldTransforms3D(0);
+}
+
+void Scene::initialSize(uint32_t width, uint32_t height) {
+    for (Node* node : m_nodes) {
+        if (Camera3D* camera = dynamic_cast<Camera3D*>(node)) {
+            camera->setViewportSize(width, height);
+        }
+    }
 }
 
 void Scene::onEvent(Event& event) {

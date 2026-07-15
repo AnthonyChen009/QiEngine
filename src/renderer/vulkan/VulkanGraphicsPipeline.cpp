@@ -3,6 +3,7 @@
 #include "core/Assert.hpp"
 #include "core/FileSystem.hpp"
 #include "types/Vertex.hpp"
+#include <vulkan/vulkan_core.h>
 
 namespace Qi {
 
@@ -81,7 +82,7 @@ void VulkanGraphicsPipeline::createDescriptorSetLayout() {
 void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
     std::vector<char> vertShaderCode, fragShaderCode;
     if (m_type == VulkanUtils::PipelineType::Pipeline2D) {
-        vertShaderCode = FileSystem::readBinaryFile("shaders/vert2D.spv");
+        vertShaderCode = FileSystem::readBinaryFile("shaders/vert3D.spv");
         fragShaderCode = FileSystem::readBinaryFile("shaders/frag2D.spv");
     }
     else {

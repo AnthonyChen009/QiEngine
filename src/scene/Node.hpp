@@ -46,6 +46,10 @@ public:
         return m_registry->all_of<T>(m_entity);
     }
 
+    bool isInsideTree() const {
+        return m_scene != nullptr;
+    }
+
 protected:
     std::string m_name;
     int32_t m_index = -1;

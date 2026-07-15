@@ -11,4 +11,5 @@
 #include "scene/Components.hpp"
 #include "scene/2d/Sprite2D.hpp"
 
-#include "core/input/Input.hpp"
+#include "core/api/Input.hpp"
+#include "core/api/MeshPrimitives.hpp"

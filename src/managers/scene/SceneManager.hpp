@@ -5,6 +5,7 @@ namespace Qi {
 class SceneManager {
 
 public:
+    SceneManager(uint32_t width, uint32_t height);
     void setScene(std::unique_ptr<Scene> scene);
 
 	void onUpdate(Qi::Timestep ts);
@@ -14,6 +15,8 @@ public:
 private:
     float m_timeStep = 0;
     std::unique_ptr<Scene> m_currentScene;
+    uint32_t m_initalWidth;
+    uint32_t m_initialHeight;
 };
 
 }

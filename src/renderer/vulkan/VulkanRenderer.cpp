@@ -1,3 +1,4 @@
+#include "core/Base.hpp"
 #include "core/Window.hpp"
 #include "renderer/utils/VulkanUtils.hpp"
 #include "renderer/vulkan/Texture2D.hpp"
@@ -41,8 +42,9 @@ void VulkanRenderer::init(Window& window) {
     createCommandPool();
     createDepthResources();
     createFrameBuffers();
-    m_vertexBuffer = std::make_unique<VulkanVertexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getPresentQueue(), vertices);
-    m_indexBuffer = std::make_unique<VulkanIndexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getPresentQueue(), indices);
+    //m_vertexBuffer = std::make_unique<VulkanVertexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getPresentQueue(), vertices);
+    //m_indexBuffer = std::make_unique<VulkanIndexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getPresentQueue(), indices);
+
 
     createUniformBuffers();
     createDescriptorPool();
@@ -54,6 +56,8 @@ void VulkanRenderer::init(Window& window) {
     //log
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(m_vulkanDevice->getPhysicalDevice(), &properties);
+
+
 
     QI_CORE_INFO("Vulkan initialized");
     QI_CORE_INFO("GPU: {0}", properties.deviceName);
@@ -175,9 +179,9 @@ void VulkanRenderer::onVysncToggle(bool isVSync) {
 
 void VulkanRenderer::drawIndexed(uint32_t count)  {
     QI_RENDERER_ASSERT(m_pipelineBound, "Cannot draw before binding a graphics pipeline!");
-    QI_RENDERER_ASSERT(m_indexBuffer, "Index buffer has not been created!");
+    QI_RENDERER_ASSERT(m_boundIndexBuffer, "Cannot draw: no index buffer bound!");
 
-    vkCmdDrawIndexed(m_commandBuffers[m_currentFrame], m_indexBuffer->getCount(), 1, 0, 0, 0);
+    vkCmdDrawIndexed(m_commandBuffers[m_currentFrame], m_boundIndexBuffer->getCount(), 1, 0, 0, 0);
 }
 
 void VulkanRenderer::createInstance(const std::string& appName) {
@@ -290,19 +294,29 @@ void VulkanRenderer::createSyncObjects() {
 }
 
 void VulkanRenderer::bindPipeline(VulkanUtils::PipelineType type) {
-    QI_RENDERER_ASSERT(m_vertexBuffer, "Vertex buffer has not been created!");
-
     std::optional<VulkanGraphicsPipeline>& selPipeline = (type == VulkanUtils::PipelineType::Pipeline2D) ?  m_graphicsPipeline2D : m_graphicsPipeline3D;
     std::vector<VkDescriptorSet>& sets = (type == VulkanUtils::PipelineType::Pipeline2D) ? m_descriptorSets2D : m_descriptorSets3D;
 
+    QI_RENDERER_ASSERT(selPipeline.has_value(), "Pipeline type has not been created!");
+
     vkCmdBindPipeline(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, selPipeline->getPipeline());
-
-    m_vertexBuffer->bind(m_commandBuffers[m_currentFrame]);
-    m_indexBuffer->bind(m_commandBuffers[m_currentFrame]);
-
     vkCmdBindDescriptorSets(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, selPipeline->getPipelineLayout(), 0, 1, &sets[m_currentFrame], 0, nullptr);
-
+    m_boundVertexBuffer = nullptr;
+    m_boundIndexBuffer = nullptr;
     m_pipelineBound = true;
+}
+
+void VulkanRenderer::bindBuffers(const VertexBuffer& vertexBuffer, const IndexBuffer& indexBuffer) {
+    QI_RENDERER_ASSERT(m_pipelineBound, "Cannot bind buffers before a graphics pipeline is bound!");
+    QI_RENDERER_ASSERT(vertexBuffer.isBufferValid(), "Vertex buffer handle is invalid!");
+    QI_RENDERER_ASSERT(indexBuffer.isBufferValid(), "Index buffer handle is invalid!");
+    VkCommandBuffer commandBuffer = m_commandBuffers[m_currentFrame];
+
+    vertexBuffer.bind(static_cast<CommandBufferHandle>(commandBuffer));
+    indexBuffer.bind(static_cast<CommandBufferHandle>(commandBuffer));
+
+    m_boundVertexBuffer = &vertexBuffer;
+    m_boundIndexBuffer = &indexBuffer;
 }
 
 void VulkanRenderer::cleanupSwapChain() {
@@ -341,10 +355,12 @@ void VulkanRenderer::recreateSwapChain() {
 }
 
 void VulkanRenderer::createUniformBuffers() {
-    m_uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    m_uniformBuffers2D.resize(MAX_FRAMES_IN_FLIGHT);
+    m_uniformBuffers3D.resize(MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        m_uniformBuffers[i] = std::make_unique<VulkanUniformBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), sizeof(UniformBufferObject));
+        m_uniformBuffers2D[i] = std::make_unique<VulkanUniformBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), sizeof(UniformBufferObject));
+        m_uniformBuffers3D[i] = std::make_unique<VulkanUniformBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), sizeof(UniformBufferObject));
     }
 }
 
@@ -355,23 +371,11 @@ void VulkanRenderer::updateUniformBuffer2D() {
     float height = static_cast<float>(m_swapChain->getExtent().height);
     ubo.proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f, -1.0f, 1.0f);
     ubo.proj[1][1] *= -1;
-    m_uniformBuffers[m_currentFrame]->setData(&ubo, sizeof(ubo));
+    m_uniformBuffers2D[m_currentFrame]->setData(&ubo, sizeof(ubo));
 }
 
-void VulkanRenderer::updateUniformBuffer3D() {
-    UniformBufferObject ubo{};
-
-    ubo.view = glm::lookAt(
-        glm::vec3(0.0f, 2.0f, 2.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 1.0f, 0.0f)
-    );
-
-    float aspect = static_cast<float>(m_swapChain->getExtent().width) / static_cast<float>(m_swapChain->getExtent().height);
-    ubo.proj = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 10.0f);
-    ubo.proj[1][1] *= -1;
-
-    m_uniformBuffers[m_currentFrame]->setData(&ubo, sizeof(ubo));
+void VulkanRenderer::updateUniformBuffer3D(UniformBufferObject& ubo) {
+    m_uniformBuffers3D[m_currentFrame]->setData(&ubo, sizeof(ubo));
 }
 
 void VulkanRenderer::createDescriptorPool() {
@@ -409,9 +413,11 @@ void VulkanRenderer::createDescriptorSets(VulkanUtils::PipelineType type) {
     VkResult result = vkAllocateDescriptorSets(m_vulkanDevice->getDevice(), &allocInfo, sets.data());
     QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to allocate descriptor sets!");
 
+    std::vector<std::unique_ptr<VulkanUniformBuffer>>& uniformBuffers = (type == VulkanUtils::PipelineType::Pipeline2D) ? m_uniformBuffers2D : m_uniformBuffers3D;
+
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = m_uniformBuffers[i]->getBuffer();
+        bufferInfo.buffer = uniformBuffers[i]->getBuffer();
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -503,6 +509,14 @@ std::shared_ptr<Texture2D> VulkanRenderer::getOrLoadTexture(const std::string& p
     return m_textureCache[path];
 }
 
+std::shared_ptr<VertexBuffer> VulkanRenderer::createVertexBuffer(const std::vector<Vertex>& vertices) {
+    return std::make_shared<VulkanVertexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), vertices);
+}
+
+std::shared_ptr<IndexBuffer> VulkanRenderer::createIndexBuffer(const std::vector<uint32_t>& indices) {
+    return std::make_shared<VulkanIndexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), indices);
+}
+
 void VulkanRenderer::initImGui(Window* window) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -589,9 +603,11 @@ void VulkanRenderer::shutdown() {
     m_imageAvailableSemaphores.clear();
     m_inFlightFences.clear();
 
-    m_vertexBuffer.reset();
-    m_indexBuffer.reset();
-    m_uniformBuffers.clear();
+    m_boundVertexBuffer = nullptr;
+    m_boundIndexBuffer = nullptr;
+    m_uniformBuffers2D.clear();
+    m_uniformBuffers3D.clear();
+
 
     if (m_descriptorPool != VK_NULL_HANDLE) {
         vkDestroyDescriptorPool(m_vulkanDevice->getDevice(), m_descriptorPool, nullptr);

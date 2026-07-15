@@ -4,6 +4,8 @@
 #include <memory>
 #include "servers/rendering/RenderingServer.hpp"
 #include "core/Assert.hpp"
+#include "ResourceCache.hpp"
+#include "renderer/vulkan/Mesh.hpp"
 
 namespace Qi {
 
@@ -21,20 +23,11 @@ public:
 
 private:
     RenderingServer& m_renderingServer;
+    ResourceCache<std::string, Mesh> m_meshCache;
+    //ResourceCache<std::string, Texture2D> m_textureCache;
 };
 
-}
-
-#include "servers/rendering/RenderingServer.hpp"
-#include "renderer/vulkan/Texture2D.hpp"
-
-namespace Qi {
-
-template<>
-inline std::shared_ptr<Texture2D>
-ResourceLoader::Load<Texture2D>(const std::string& path)
-{
-    return m_renderingServer.createTexture2D(path);
-}
+template<> std::shared_ptr<Texture2D> ResourceLoader::Load<Texture2D>(const std::string& path);
+template<> std::shared_ptr<Mesh> ResourceLoader::Load<Mesh>(const std::string& path);
 
 }
