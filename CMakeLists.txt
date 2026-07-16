@@ -17,7 +17,6 @@ add_subdirectory(src/scene)
 add_subdirectory(src/utils)
 add_subdirectory(app)
 add_subdirectory(src/servers)
-add_subdirectory(src/managers)
 
 target_include_directories(glad PUBLIC
     ${CMAKE_SOURCE_DIR}/include/external/glad/include

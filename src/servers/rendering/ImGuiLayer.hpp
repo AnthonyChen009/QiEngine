@@ -8,10 +8,10 @@
 
 namespace Qi {
 
-class ImGuiManager {
+class ImGuiLayer {
 public:
-    ImGuiManager(Window& window, Renderer& renderer);
-    ~ImGuiManager() = default;
+    ImGuiLayer(Window& window, Renderer& renderer);
+    ~ImGuiLayer() = default;
 
     void init();
     void shutdown();

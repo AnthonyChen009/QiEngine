@@ -1,4 +1,4 @@
-#include "ImGuiManager.hpp"
+#include "ImGuiLayer.hpp"
 
 #include "core/Application.hpp"
 #include "core/Log.hpp"
@@ -9,27 +9,27 @@
 
 namespace Qi {
 
-ImGuiManager::ImGuiManager(Window& window, Renderer& renderer) : m_window(window), m_renderer(renderer) {
+ImGuiLayer::ImGuiLayer(Window& window, Renderer& renderer) : m_window(window), m_renderer(renderer) {
 
 }
 
-void ImGuiManager::init() {
+void ImGuiLayer::init() {
     m_renderer.getBackend()->initImGui(&m_window);
 }
 
-void ImGuiManager::shutdown() {
+void ImGuiLayer::shutdown() {
     m_renderer.getBackend()->shutdownImGui();
 }
 
-void ImGuiManager::begin() {
+void ImGuiLayer::begin() {
     m_renderer.getBackend()->beginImGuiFrame();
 }
 
-void ImGuiManager::end() {
+void ImGuiLayer::end() {
     m_renderer.getBackend()->renderImGui();
 }
 
-void ImGuiManager::render(Timestep ts) {
+void ImGuiLayer::render(Timestep ts) {
     if (Input::isKeyJustPressed(Key::F1)) {
         toggleVisible();
     }
@@ -148,7 +148,7 @@ void ImGuiManager::render(Timestep ts) {
     ImGui::End();
 }
 
-void ImGuiManager::onEvent(Event& event) {
+void ImGuiLayer::onEvent(Event& event) {
 
     if (m_blockEvents) {
         ImGuiIO& io = ImGui::GetIO();
@@ -157,11 +157,11 @@ void ImGuiManager::onEvent(Event& event) {
     }
 }
 
-void ImGuiManager::setDarkThemeColors() {
+void ImGuiLayer::setDarkThemeColors() {
     ImGui::StyleColorsDark();
 }
 
-uint32_t ImGuiManager::getActiveWidgetID() const {
+uint32_t ImGuiLayer::getActiveWidgetID() const {
     // TODO: Return active widget ID if needed
     return 0;
 }
