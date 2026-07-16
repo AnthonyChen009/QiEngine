@@ -15,9 +15,9 @@
 #include <glm/ext/vector_float2.hpp>
 
 void SandboxScene::onReady() {
-    m_player = QiNew<Qi::Sprite2D>();
-    addNode(m_player);
-    m_player->setTexture(Qi::Application::get().getResourceLoader().Load<Qi::Texture2D>("images/textureTest.jpg"));
+    // m_player = QiNew<Qi::Sprite2D>();
+    // addNode(m_player);
+    // m_player->setTexture(Qi::Application::get().getResourceLoader().Load<Qi::Texture2D>("images/textureTest.jpg"));
 
     m_testNode = QiNew<Qi::MeshInstance3D>();
     addNode(m_testNode);
