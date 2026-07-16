@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/Base.hpp"
+#include <string>
 
 namespace Qi {
 
