@@ -6,9 +6,16 @@ layout(push_constant) uniform PushConstants {
     uint textureIndex;
 } push;
 
-layout(binding = 0) uniform UniformBufferObject {
+layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;
+
+    vec3 lightDirection;
+    vec3 lightColor;
+    float lightIntensity;
+
+    vec3 ambientColor;
+    float ambientIntensity;
 } ubo;
 
 layout(location = 0) in vec3 inPosition;
@@ -25,5 +32,5 @@ void main() {
 
     fragColor = push.color;
     fragTexCoord = inTexCoord;
-    fragNormal = inNormal;
+    fragNormal = mat3(transpose(inverse(push.transform))) * inNormal;
 }

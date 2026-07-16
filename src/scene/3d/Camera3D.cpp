@@ -1,4 +1,5 @@
 #include "Camera3D.hpp"
+#include "core/Log.hpp"
 #include "core/Timestep.hpp"
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
@@ -11,7 +12,7 @@
 
 namespace Qi {
 
-Camera3D::Camera3D(const std::string& name, const CameraProperties& props) : m_camProperties(props) {
+Camera3D::Camera3D(const std::string& name, const CameraProperties& props) : Node3D(name), m_camProperties(props) {
 
 }
 
@@ -23,7 +24,9 @@ void Camera3D::onReady() {
 
 void Camera3D::onUpdate(Timestep ts) {
     if (!getComponent<Camera3DComponent>().isDirty) {
+
         if (glm::any(glm::notEqual(m_lastTransform, getWorldTransform()))) {
+
             getComponent<Camera3DComponent>().isDirty = true;
         }
     }

@@ -8,6 +8,7 @@ namespace Qi {
 class MeshInstance3D : public Node3D {
 
 public:
+    MeshInstance3D(const std::string& name = "MeshInstance3D");
     void onReady() override;
     void onUpdate(Timestep ts) override;
     void onEvent(Event& event) override;

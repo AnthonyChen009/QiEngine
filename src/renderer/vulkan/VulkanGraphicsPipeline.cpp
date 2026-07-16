@@ -46,7 +46,7 @@ void VulkanGraphicsPipeline::createDescriptorSetLayout() {
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     uboLayoutBinding.pImmutableSamplers = nullptr;
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
@@ -85,9 +85,13 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
         vertShaderCode = FileSystem::readBinaryFile("shaders/vert3D.spv");
         fragShaderCode = FileSystem::readBinaryFile("shaders/frag2D.spv");
     }
-    else {
+    else if (m_type == VulkanUtils::PipelineType::Pipeline3D){
         vertShaderCode = FileSystem::readBinaryFile("shaders/vert3D.spv");
         fragShaderCode = FileSystem::readBinaryFile("shaders/frag3D.spv");
+    }
+    else {
+        vertShaderCode = FileSystem::readBinaryFile("shaders/vertSky.spv");
+        fragShaderCode = FileSystem::readBinaryFile("shaders/fragSky.spv");
     }
 
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
@@ -120,10 +124,8 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
     VkVertexInputBindingDescription bindingDescription;
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 
-    if (m_type == VulkanUtils::PipelineType::Pipeline2D) {
-        bindingDescription = Vertex::getBindingDescription();
-        auto attrs = Vertex::getAttributeDescriptions();
-        attributeDescriptions = {attrs.begin(), attrs.end()};
+    if (m_type == VulkanUtils::PipelineType::PipelineSky) {
+
     }
     else {
         bindingDescription = Vertex::getBindingDescription();
@@ -154,7 +156,7 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizer.cullMode = (m_type == VulkanUtils::PipelineType::PipelineSky) ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -165,8 +167,8 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencil.depthTestEnable = VK_TRUE;
-    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthTestEnable = (m_type == VulkanUtils::PipelineType::PipelineSky) ? VK_FALSE : VK_TRUE;
+    depthStencil.depthWriteEnable = (m_type == VulkanUtils::PipelineType::PipelineSky) ? VK_FALSE : VK_TRUE;
     depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.minDepthBounds = 0.0f;

@@ -60,7 +60,7 @@ void Application::run() {
             m_updateTimeMs = (updateEnd - updateStart) * 1000.0;
 
             m_renderingServer->beginImGui();
-            m_renderingServer->getImGuiManager().render(timestep);
+            m_renderingServer->getImGuiLayer().render(timestep);
             m_renderingServer->endImGui();
 
             m_renderingServer->endFrame();

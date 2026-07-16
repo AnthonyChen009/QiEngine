@@ -5,4 +5,6 @@ target_sources(QiEngine PRIVATE
     3d/MeshInstance3D.cpp
     3d/Node3D.cpp
     3d/Camera3D.cpp
+    NameRegistry.cpp
+    SceneManager.cpp
 )

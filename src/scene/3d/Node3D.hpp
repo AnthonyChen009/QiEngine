@@ -9,6 +9,7 @@ namespace Qi {
 class Node3D : public Node {
 
 public:
+    Node3D(const std::string& name = "Node3D");
     void onReady() override;
     void onUpdate(Timestep ts) override;
     void onEvent(Event& event) override;

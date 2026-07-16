@@ -9,46 +9,40 @@
 #include "scene/2d/Sprite2D.hpp"
 #include "scene/3d/Camera3D.hpp"
 #include "scene/3d/MeshInstance3D.hpp"
+#include "scene/3d/Node3D.hpp"
 #include "scene/Components.hpp"
 #include "QiEngine.hpp"
 #include <glm/ext/vector_float2.hpp>
 
 void SandboxScene::onReady() {
-    m_player = QiNew<Qi::Sprite2D>();
-    addNode(m_player);
-    m_player->setTexture(Qi::Application::get().getResourceLoader().Load<Qi::Texture2D>("images/textureTest.jpg"));
+    // m_player = QiNew<Qi::Sprite2D>();
+    // addNode(m_player);
+    // m_player->setTexture(Qi::Application::get().getResourceLoader().Load<Qi::Texture2D>("images/textureTest.jpg"));
 
     m_testNode = QiNew<Qi::MeshInstance3D>();
     addNode(m_testNode);
     m_testNode->setMesh(Qi::MeshPrimitives::CapsuleMesh());
     m_testNode->addComponent<Qi::Rigidbody3DComponent>();
 
-    m_camera = QiNew<Qi::Camera3D>();
+    m_testNode2 = QiNew<Qi::MeshInstance3D>();
+    addNode(m_testNode2);
+    m_testNode2->setMesh(Qi::MeshPrimitives::BoxMesh());
+    m_testNode2->setPosition({0,0,2});
+
+    m_camera = QiNew<CameraController>();
     addNode(m_camera);
     m_camera->setPosition({0.0f, 2.0f, 2.0f});
     setActiveCamera(*m_camera);
+
+    m_directionLight = QiNew<Qi::Node3D>();
+    addNode(m_directionLight);
+    m_directionLight->addComponent<Qi::DirectionalLightComponent>();
 }
 
 void SandboxScene::onUpdate(Qi::Timestep ts) {
-    glm::vec3& velocity = m_testNode->getComponent<Qi::Rigidbody3DComponent>().velocity;
-
-    glm::vec3 direction{0.0f};
-
-    if (Qi::Input::isKeyPressed(Qi::Key::W)) direction.z -= 1.0f;
-    if (Qi::Input::isKeyPressed(Qi::Key::S)) direction.z += 1.0f;
-    if (Qi::Input::isKeyPressed(Qi::Key::A)) direction.x -= 1.0f;
-    if (Qi::Input::isKeyPressed(Qi::Key::D)) direction.x += 1.0f;
-
-    if (Qi::Input::isKeyPressed(Qi::Key::Space)) direction.y += 1.0f;
-    if (Qi::Input::isKeyPressed(Qi::Key::LeftControl)) direction.y -= 1.0f;
-
-    float speed = 10.0f;
-
-    if (glm::length(direction) > 0.0f) {
-        direction = glm::normalize(direction);
-    }
-
-    velocity = direction * speed;
+    Qi::Scene::onUpdate(ts);
+    m_turntableAngle += glm::radians(45.0f) * ts.getSeconds();
+    m_testNode2->setRotation(glm::angleAxis(m_turntableAngle, glm::vec3(0, 1, 0)));
 }
 
 void SandboxScene::onEvent(Qi::Event& event) {

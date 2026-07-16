@@ -9,6 +9,8 @@ Renderer3D::Renderer3D(Renderer& renderer) : m_renderer(renderer) {
 }
 
 void Renderer3D::beginScene() {
+    m_renderer.getBackend()->bindPipeline(VulkanUtils::PipelineType::PipelineSky);
+    m_renderer.getBackend()->drawFullscreenTriangle();
     m_renderer.getBackend()->bindPipeline(VulkanUtils::PipelineType::Pipeline3D);
 }
 

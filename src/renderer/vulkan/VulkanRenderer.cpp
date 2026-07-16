@@ -1,5 +1,6 @@
 #include "core/Base.hpp"
 #include "core/Window.hpp"
+#include "renderer/types/SkyUbo.hpp"
 #include "renderer/utils/VulkanUtils.hpp"
 #include "renderer/vulkan/Texture2D.hpp"
 #include "renderer/vulkan/VulkanGraphicsPipeline.hpp"
@@ -39,6 +40,7 @@ void VulkanRenderer::init(Window& window) {
     m_renderPass.emplace(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_swapChain->getImageFormat());
     m_graphicsPipeline2D.emplace(m_vulkanDevice->getDevice(), m_renderPass->getRenderPass(), VulkanUtils::PipelineType::Pipeline2D);
     m_graphicsPipeline3D.emplace(m_vulkanDevice->getDevice(), m_renderPass->getRenderPass(), VulkanUtils::PipelineType::Pipeline3D);
+    m_graphicsPipelineSky.emplace(m_vulkanDevice->getDevice(), m_renderPass->getRenderPass(), VulkanUtils::PipelineType::PipelineSky);
     createCommandPool();
     createDepthResources();
     createFrameBuffers();
@@ -53,6 +55,7 @@ void VulkanRenderer::init(Window& window) {
     createSyncObjects();
     createDescriptorSets(VulkanUtils::PipelineType::Pipeline2D);
     createDescriptorSets(VulkanUtils::PipelineType::Pipeline3D);
+    createDescriptorSets(VulkanUtils::PipelineType::PipelineSky);
     //log
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(m_vulkanDevice->getPhysicalDevice(), &properties);
@@ -249,7 +252,7 @@ void VulkanRenderer::beginCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     renderPassInfo.renderArea.extent = m_swapChain->getExtent();
 
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+    clearValues[0].color = {{0.4980f, 0.6745f, 1.0f, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -294,13 +297,27 @@ void VulkanRenderer::createSyncObjects() {
 }
 
 void VulkanRenderer::bindPipeline(VulkanUtils::PipelineType type) {
-    std::optional<VulkanGraphicsPipeline>& selPipeline = (type == VulkanUtils::PipelineType::Pipeline2D) ?  m_graphicsPipeline2D : m_graphicsPipeline3D;
-    std::vector<VkDescriptorSet>& sets = (type == VulkanUtils::PipelineType::Pipeline2D) ? m_descriptorSets2D : m_descriptorSets3D;
+    std::optional<VulkanGraphicsPipeline>* selPipeline = nullptr;
+    std::vector<VkDescriptorSet>* sets = nullptr;
 
-    QI_RENDERER_ASSERT(selPipeline.has_value(), "Pipeline type has not been created!");
+    switch (type) {
+        case VulkanUtils::PipelineType::Pipeline2D:
+            selPipeline = &m_graphicsPipeline2D;
+            sets = &m_descriptorSets2D;
+            break;
+        case VulkanUtils::PipelineType::Pipeline3D:
+            selPipeline = &m_graphicsPipeline3D;
+            sets = &m_descriptorSets3D;
+            break;
+        case VulkanUtils::PipelineType::PipelineSky:
+            selPipeline = &m_graphicsPipelineSky;
+            sets = &m_descriptorSetsSky;
+            break;
+    }
 
-    vkCmdBindPipeline(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, selPipeline->getPipeline());
-    vkCmdBindDescriptorSets(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, selPipeline->getPipelineLayout(), 0, 1, &sets[m_currentFrame], 0, nullptr);
+    QI_RENDERER_ASSERT(selPipeline->has_value(), "Pipeline type has not been created!");
+    vkCmdBindPipeline(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, (*selPipeline)->getPipeline());
+    vkCmdBindDescriptorSets(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, (*selPipeline)->getPipelineLayout(), 0, 1, &(*sets)[m_currentFrame], 0, nullptr);
     m_boundVertexBuffer = nullptr;
     m_boundIndexBuffer = nullptr;
     m_pipelineBound = true;
@@ -357,10 +374,12 @@ void VulkanRenderer::recreateSwapChain() {
 void VulkanRenderer::createUniformBuffers() {
     m_uniformBuffers2D.resize(MAX_FRAMES_IN_FLIGHT);
     m_uniformBuffers3D.resize(MAX_FRAMES_IN_FLIGHT);
+    m_skyUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         m_uniformBuffers2D[i] = std::make_unique<VulkanUniformBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), sizeof(UniformBufferObject));
         m_uniformBuffers3D[i] = std::make_unique<VulkanUniformBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), sizeof(UniformBufferObject));
+        m_skyUniformBuffers[i] = std::make_unique<VulkanUniformBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), sizeof(SkyUniformBufferObject));
     }
 }
 
@@ -378,58 +397,78 @@ void VulkanRenderer::updateUniformBuffer3D(UniformBufferObject& ubo) {
     m_uniformBuffers3D[m_currentFrame]->setData(&ubo, sizeof(ubo));
 }
 
+void VulkanRenderer::updateUniformBufferSky(SkyUniformBufferObject& ubo) {
+    m_skyUniformBuffers[m_currentFrame]->setData(&ubo, sizeof(ubo));
+}
+
 void VulkanRenderer::createDescriptorPool() {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
+    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 3);
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 1024 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
+    poolSizes[1].descriptorCount = 1024 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 3);
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
+    poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 3);
 
     VkResult result = vkCreateDescriptorPool(m_vulkanDevice->getDevice(), &poolInfo, nullptr, &m_descriptorPool);
     QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create descriptor pool!");
 }
 
 void VulkanRenderer::createDescriptorSets(VulkanUtils::PipelineType type) {
+    std::optional<VulkanGraphicsPipeline>* selPipeline = nullptr;
+    std::vector<VkDescriptorSet>* sets = nullptr;
+    std::vector<std::unique_ptr<VulkanUniformBuffer>>* uniformBuffers = nullptr;
+    VkDeviceSize uboSize = 0;
 
-    std::optional<VulkanGraphicsPipeline>& selPipeline = (type == VulkanUtils::PipelineType::Pipeline2D) ?  m_graphicsPipeline2D : m_graphicsPipeline3D;
-    std::vector<VkDescriptorSet>& sets = (type == VulkanUtils::PipelineType::Pipeline2D) ? m_descriptorSets2D : m_descriptorSets3D;
+    switch (type) {
+        case VulkanUtils::PipelineType::Pipeline2D:
+            selPipeline = &m_graphicsPipeline2D;
+            sets = &m_descriptorSets2D;
+            uniformBuffers = &m_uniformBuffers2D;
+            uboSize = sizeof(UniformBufferObject);
+            break;
+        case VulkanUtils::PipelineType::Pipeline3D:
+            selPipeline = &m_graphicsPipeline3D;
+            sets = &m_descriptorSets3D;
+            uniformBuffers = &m_uniformBuffers3D;
+            uboSize = sizeof(UniformBufferObject);
+            break;
+        case VulkanUtils::PipelineType::PipelineSky:
+            selPipeline = &m_graphicsPipelineSky;
+            sets = &m_descriptorSetsSky;
+            uniformBuffers = &m_skyUniformBuffers;
+            uboSize = sizeof(SkyUniformBufferObject);
+            break;
+    }
 
-    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, selPipeline->getDescriptorSetLayout());
-
+    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, (*selPipeline)->getDescriptorSetLayout());
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = m_descriptorPool;
     allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
     allocInfo.pSetLayouts = layouts.data();
-
-    sets.resize(MAX_FRAMES_IN_FLIGHT);
-    VkResult result = vkAllocateDescriptorSets(m_vulkanDevice->getDevice(), &allocInfo, sets.data());
+    sets->resize(MAX_FRAMES_IN_FLIGHT);
+    VkResult result = vkAllocateDescriptorSets(m_vulkanDevice->getDevice(), &allocInfo, sets->data());
     QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to allocate descriptor sets!");
-
-    std::vector<std::unique_ptr<VulkanUniformBuffer>>& uniformBuffers = (type == VulkanUtils::PipelineType::Pipeline2D) ? m_uniformBuffers2D : m_uniformBuffers3D;
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = uniformBuffers[i]->getBuffer();
+        bufferInfo.buffer = (*uniformBuffers)[i]->getBuffer();
         bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(UniformBufferObject);
-
+        bufferInfo.range = uboSize;
         VkWriteDescriptorSet write{};
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet = sets[i];
+        write.dstSet = (*sets)[i];
         write.dstBinding = 0;
         write.dstArrayElement = 0;
         write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         write.descriptorCount = 1;
         write.pBufferInfo = &bufferInfo;
-
         vkUpdateDescriptorSets(m_vulkanDevice->getDevice(), 1, &write, 0, nullptr);
     }
 }
@@ -524,6 +563,8 @@ void VulkanRenderer::initImGui(Window* window) {
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+
 
     ImGui::StyleColorsDark();
     GLFWwindow* nativeWindow = static_cast<GLFWwindow*>(window->getNativeWindow());
@@ -581,6 +622,10 @@ void VulkanRenderer::createImGuiDescriptorPool() {
 
     VkResult result = vkCreateDescriptorPool(m_vulkanDevice->getDevice(), &poolInfo, nullptr, &m_imguiDescriptorPool);
     QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create ImGui descriptor pool!");
+}
+
+void VulkanRenderer::drawFullscreenTriangle() {
+    vkCmdDraw(m_commandBuffers[m_currentFrame], 3, 1, 0, 0);
 }
 
 void VulkanRenderer::shutdown() {

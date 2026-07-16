@@ -4,6 +4,7 @@
 #include "os/Memory.hpp"
 #include "core/Assert.hpp"
 #include "scene/3d/Camera3D.hpp"
+#include "scene/3d/Node3D.hpp"
 #include <algorithm>
 #include <glm/ext/matrix_transform.hpp>
 #include <stack>
@@ -22,7 +23,7 @@ struct TransformStackEntry3D {
 };
 
 Scene::Scene() {
-    Node* root = QiNew<Node>("root");
+    Node3D* root = QiNew<Node3D>("root");
 
     root->m_index = 0;
     root->m_parentIndex = -1;
@@ -247,6 +248,11 @@ void Scene::onTick(Timestep ts) {
         transform.updateLocalTransform();
     }
     //transform system
+    // auto transformView3D = m_registry.view<Transform3DComponent>();
+    // for (auto entity : transformView3D) {
+    //     Transform3DComponent& transform = transformView3D.get<Transform3DComponent>(entity);
+    //     transform.updateLocalTransform();
+    // }
 
     //update child nodes
     updateWorldTransforms2D(0);

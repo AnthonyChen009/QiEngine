@@ -1,8 +1,13 @@
 #include "MeshInstance3D.hpp"
+#include "scene/3d/Node3D.hpp"
 #include "scene/Components.hpp"
 #include "events/Event.hpp"
 
 namespace Qi {
+
+MeshInstance3D::MeshInstance3D(const std::string& name) : Node3D(name) {
+
+}
 
 void MeshInstance3D::onReady() {
     Node3D::onReady();

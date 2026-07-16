@@ -15,6 +15,8 @@ namespace Qi::Input {
 
     bool isMouseButtonJustPressed(MouseCode button);
 
+    void setCursorMode(CursorMode mode);
+
     glm::vec2 getMousePosition();
     glm::vec2 getMouseDelta();
 }

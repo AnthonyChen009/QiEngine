@@ -110,8 +110,8 @@ MeshData Primitives::generateCapsule(float radius, float height, uint32_t radial
         for (uint32_t seg = 0; seg < radialSegments; ++seg) {
             uint32_t a = ring * ringCount + seg;
             uint32_t b = a + ringCount;
-            indices.push_back(a); indices.push_back(b); indices.push_back(a + 1);
-            indices.push_back(b); indices.push_back(b + 1); indices.push_back(a + 1);
+            indices.push_back(a); indices.push_back(a + 1); indices.push_back(b);
+            indices.push_back(a + 1); indices.push_back(b + 1); indices.push_back(b);
         }
     }
 
@@ -131,8 +131,8 @@ MeshData Primitives::generateCapsule(float radius, float height, uint32_t radial
     for (uint32_t seg = 0; seg < radialSegments; ++seg) {
         uint32_t a = cylStart + seg;
         uint32_t b = a + radialSegments + 1;
-        indices.push_back(a); indices.push_back(b); indices.push_back(a + 1);
-        indices.push_back(b); indices.push_back(b + 1); indices.push_back(a + 1);
+        indices.push_back(a); indices.push_back(a + 1); indices.push_back(b);
+        indices.push_back(a + 1); indices.push_back(b + 1); indices.push_back(b);
     }
 
     uint32_t botStart = static_cast<uint32_t>(vertices.size());
@@ -156,8 +156,8 @@ MeshData Primitives::generateCapsule(float radius, float height, uint32_t radial
         for (uint32_t seg = 0; seg < radialSegments; ++seg) {
             uint32_t a = botStart + ring * ringCount + seg;
             uint32_t b = a + ringCount;
-            indices.push_back(a); indices.push_back(b); indices.push_back(a + 1);
-            indices.push_back(b); indices.push_back(b + 1); indices.push_back(a + 1);
+            indices.push_back(a); indices.push_back(a + 1); indices.push_back(b);
+            indices.push_back(a + 1); indices.push_back(b + 1); indices.push_back(b);
         }
     }
 

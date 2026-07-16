@@ -75,6 +75,12 @@ struct Camera3DComponent {
     float viewportHeight = 720.0f;
 };
 
+struct DirectionalLightComponent {
+    glm::vec3 direction = glm::normalize(glm::vec3(-0.3f, -1.0f, -0.5f));
+    glm::vec3 color = glm::vec3(1.0f, 1.0f, 0.95f);
+    float intensity = 1.0f;
+};
+
 struct MeshComponent {
     std::shared_ptr<Mesh> mesh;
     //scale here later maybe

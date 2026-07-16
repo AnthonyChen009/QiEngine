@@ -4,6 +4,7 @@
 #include <vector>
 #include <entt/entt.hpp>
 #include "core/Timestep.hpp"
+#include "scene/NameRegistry.hpp"
 
 namespace Qi {
 
@@ -13,9 +14,7 @@ class Timestep;
 
 class Node {
 public:
-    Node(const std::string& name = "Node") : m_name(name) {
-
-    }
+    Node(const std::string& name = "Node");
 
     virtual ~Node() = default;
 
@@ -58,6 +57,7 @@ protected:
 
     entt::entity m_entity = entt::null;
     entt::registry* m_registry = nullptr;
+    NameRegistry m_nameRegistry;
     Scene* m_scene = nullptr;
 
     friend class Scene;

@@ -1,10 +1,15 @@
 #include "Node3D.hpp"
 #include "scene/Components.hpp"
+#include "scene/Node.hpp"
 #include <glm/fwd.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 
 namespace Qi {
+
+Node3D::Node3D(const std::string& name) : Node(name) {
+
+}
 
 void Node3D::onReady() {
     addComponent<Transform3DComponent>();
@@ -23,8 +28,7 @@ void Node3D::setPosition(const glm::vec3& position) {
 }
 
 const glm::vec3& Node3D::getPosition() const {
-    static glm::vec3 empty{};
-    return empty;
+    return getComponent<Transform3DComponent>().position;
 }
 
 void Node3D::setRotation(const glm::quat& rotation) {

@@ -4,6 +4,10 @@
 
 namespace Qi {
 
+Node::Node(const std::string& name) : m_name(name) {
+    m_name = m_nameRegistry.makeUniqueName(name);
+}
+
 void Node::destroy() {
     if (m_scene && m_index != -1)
         m_scene->destroyNode(m_index);

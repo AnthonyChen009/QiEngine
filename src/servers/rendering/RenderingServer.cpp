@@ -1,7 +1,7 @@
 #include "RenderingServer.hpp"
 #include "core/Base.hpp"
 #include "core/Log.hpp"
-#include "managers/imgui/ImGuiManager.hpp"
+
 #include "renderer/IndexBuffer.hpp"
 #include "renderer/Renderer.hpp"
 #include "renderer/Renderer2D.hpp"
@@ -9,6 +9,7 @@
 #include "renderer/VertexBuffer.hpp"
 #include "renderer/types/UniformBufferObject.hpp"
 #include "scene/Components.hpp"
+#include "servers/rendering/ImGuiLayer.hpp"
 #include "servers/rendering/PrimitiveMeshLibrary.hpp"
 #include <memory>
 
@@ -21,12 +22,12 @@ RenderingServer::RenderingServer(Window& window, GraphicsAPI graphicsAPI) {
     m_renderer2D = createScope<Renderer2D>(*m_renderer, m_primitives.getQuad());
     m_renderer3D = createScope<Renderer3D>(*m_renderer);
 
-    m_imGuiManager = createScope<ImGuiManager>(window, *m_renderer);
-    m_imGuiManager->init();
+    m_imGuiLayer = createScope<ImGuiLayer>(window, *m_renderer);
+    m_imGuiLayer->init();
 }
 
 RenderingServer::~RenderingServer() {
-    m_imGuiManager->shutdown();
+    m_imGuiLayer->shutdown();
 }
 
 bool RenderingServer::beginFrame() {
@@ -68,12 +69,31 @@ void RenderingServer::render3D(Scene& scene) {
 
     m_renderer3D->beginScene();
 
-    Camera3DComponent& camComponent = camera->getComponent<Camera3DComponent>();
+    glm::mat4 viewNoTranslation = glm::mat4(glm::mat3(camera->getViewMatrix()));
+    glm::mat4 skyProj = camera->getProjectionMatrix();
+    skyProj[1][1] *= -1;
+
+    SkyUniformBufferObject skyUbo{};
+    skyUbo.invViewProj = glm::inverse(skyProj * viewNoTranslation);
+    //move into m_renderer later
+    m_renderer->getBackend()->updateUniformBufferSky(skyUbo);
+    m_renderer->getBackend()->drawFullscreenTriangle();
 
     UniformBufferObject ubo{};
-    ubo.view = camComponent.view;
-    ubo.proj = camComponent.projection;
+    ubo.view = camera->getViewMatrix();
+    ubo.proj = camera->getProjectionMatrix();
     ubo.proj[1][1] *= -1;
+
+    auto lightView = scene.getRegistry().view<DirectionalLightComponent>();
+    if (!lightView.empty()) {
+        auto& light = lightView.get<DirectionalLightComponent>(lightView.front());
+        ubo.lightDirection = glm::normalize(light.direction);
+        ubo.lightColor = light.color;
+        ubo.lightIntensity = light.intensity;
+    }
+
+    ubo.ambientColor = glm::vec3(1.0f);
+    ubo.ambientIntensity = 0.1f;
 
     m_renderer->updateUniformBuffer3D(ubo);
 
@@ -113,7 +133,7 @@ void RenderingServer::onWindowResize(unsigned int x, unsigned int y) {
 }
 
 void RenderingServer::onEvent(Qi::Event& event) {
-    m_imGuiManager->onEvent(event);
+    m_imGuiLayer->onEvent(event);
 }
 
 std::shared_ptr<Texture2D> RenderingServer::createTexture2D(const std::string& path) {
@@ -121,19 +141,19 @@ std::shared_ptr<Texture2D> RenderingServer::createTexture2D(const std::string& p
 }
 
 void RenderingServer::beginImGui() {
-    m_imGuiManager->begin();
+    m_imGuiLayer->begin();
 }
 
 void RenderingServer::endImGui() {
-    m_imGuiManager->end();
+    m_imGuiLayer->end();
 }
 
 PrimitiveMeshLibrary& RenderingServer::getPrimitives() {
     return m_primitives;
 }
 
-ImGuiManager& RenderingServer::getImGuiManager() {
-    return *m_imGuiManager;
+ImGuiLayer& RenderingServer::getImGuiLayer() {
+    return *m_imGuiLayer;
 }
 
 

@@ -10,6 +10,7 @@
 #include "VulkanVertexBuffer.hpp"
 #include "VulkanIndexBuffer.hpp"
 #include "VulkanUniformBuffer.hpp"
+#include "renderer/types/SkyUbo.hpp"
 #include "renderer/types/UniformBufferObject.hpp"
 #include "renderer/vulkan/VulkanDevice.hpp"
 #include "renderer/vulkan/VulkanGraphicsPipeline.hpp"
@@ -37,6 +38,7 @@ public:
     void drawIndexed(uint32_t count) override;
     void updateUniformBuffer2D() override;
     void updateUniformBuffer3D(UniformBufferObject& ubo) override;
+    void updateUniformBufferSky(SkyUniformBufferObject& ubo) override;
     void pushConstants2D(const PushConstant& push) override;
     void pushConstants3D(const PushConstant& push) override;
     void initImGui(Window* window) override;
@@ -45,6 +47,7 @@ public:
     void renderImGui() override;
     void bindPipeline(VulkanUtils::PipelineType type) override;
     void bindBuffers(const VertexBuffer& vertexBuffer, const IndexBuffer& indexBuffer) override;
+    void drawFullscreenTriangle() override;
 
     std::shared_ptr<VertexBuffer> createVertexBuffer(const std::vector<Vertex>& vertices) override;
     std::shared_ptr<IndexBuffer> createIndexBuffer(const std::vector<uint32_t>& indices) override;
@@ -89,6 +92,7 @@ private:
 
     std::optional<VulkanGraphicsPipeline> m_graphicsPipeline2D;
     std::optional<VulkanGraphicsPipeline> m_graphicsPipeline3D;
+    std::optional<VulkanGraphicsPipeline> m_graphicsPipelineSky;
 
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
 
@@ -105,10 +109,12 @@ private:
 
     std::vector<std::unique_ptr<VulkanUniformBuffer>> m_uniformBuffers2D;
     std::vector<std::unique_ptr<VulkanUniformBuffer>> m_uniformBuffers3D;
+    std::vector<std::unique_ptr<VulkanUniformBuffer>> m_skyUniformBuffers;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> m_descriptorSets2D;
     std::vector<VkDescriptorSet> m_descriptorSets3D;
+    std::vector<VkDescriptorSet> m_descriptorSetsSky;
 
     std::vector<VkCommandBuffer> m_commandBuffers;
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
