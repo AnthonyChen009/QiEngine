@@ -1,6 +1,7 @@
 add_executable(QiApp
     SandboxApp.cpp
     SandboxScene.cpp
+    game/CameraController.cpp
 )
 
 
