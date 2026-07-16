@@ -7,8 +7,6 @@ add_library(QiEngine STATIC
     ${CMAKE_SOURCE_DIR}/include/external/stb/stb_image.cpp
 )
 
-add_library(glad ${CMAKE_SOURCE_DIR}/include/external/glad/src/glad.c)
-
 add_subdirectory(src/core)
 add_subdirectory(src/platform)
 add_subdirectory(src/renderer)
@@ -17,10 +15,6 @@ add_subdirectory(src/scene)
 add_subdirectory(src/utils)
 add_subdirectory(app)
 add_subdirectory(src/servers)
-
-target_include_directories(glad PUBLIC
-    ${CMAKE_SOURCE_DIR}/include/external/glad/include
-)
 
 target_include_directories(QiEngine
     PUBLIC
@@ -140,7 +134,6 @@ target_link_libraries(QiEngine
         Vulkan::Vulkan
         spdlog::spdlog
         glm::glm
-        glad
         OpenGL::GL
         EnTT::EnTT
         imgui
