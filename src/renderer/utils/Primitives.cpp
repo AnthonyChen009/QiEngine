@@ -9,7 +9,7 @@ namespace Qi {
 static constexpr float PI = 3.14159265358979323846f;
 static constexpr glm::vec3 kDefaultColor = { 1.0f, 1.0f, 1.0f };
 
-MeshData Primitives::generateBox(float width, float height, float depth) {
+MeshDataPair Primitives::generateBox(float width, float height, float depth) {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 
@@ -47,7 +47,7 @@ MeshData Primitives::generateBox(float width, float height, float depth) {
     return { vertices, indices };
 }
 
-MeshData Primitives::generateSphere(float radius, uint32_t radialSegments, uint32_t rings) {
+MeshDataPair Primitives::generateSphere(float radius, uint32_t radialSegments, uint32_t rings) {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 
@@ -81,7 +81,7 @@ MeshData Primitives::generateSphere(float radius, uint32_t radialSegments, uint3
     return { vertices, indices };
 }
 
-MeshData Primitives::generateCapsule(float radius, float height, uint32_t radialSegments, uint32_t rings) {
+MeshDataPair Primitives::generateCapsule(float radius, float height, uint32_t radialSegments, uint32_t rings) {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 
@@ -164,7 +164,7 @@ MeshData Primitives::generateCapsule(float radius, float height, uint32_t radial
     return { vertices, indices };
 }
 
-MeshData Primitives::generatePlane(float width, float depth) {
+MeshDataPair Primitives::generatePlane(float width, float depth) {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 
@@ -181,7 +181,7 @@ MeshData Primitives::generatePlane(float width, float depth) {
     return { vertices, indices };
 }
 
-MeshData Primitives::generateQuad(float width, float height) {
+MeshDataPair Primitives::generateQuad(float width, float height) {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 
@@ -198,17 +198,17 @@ MeshData Primitives::generateQuad(float width, float height) {
     return { vertices, indices };
 }
 
-MeshData Primitives::generateCylinder(float topRadius, float bottomRadius, float height, uint32_t radialSegments) {
+MeshDataPair Primitives::generateCylinder(float topRadius, float bottomRadius, float height, uint32_t radialSegments) {
     QI_CORE_ASSERT(false, "Primitives::generateCylinder is not implemented yet");
     return {};
 }
 
-MeshData Primitives::generateTorus(float outerRadius, float innerRadius, uint32_t ringSegments, uint32_t sides) {
+MeshDataPair Primitives::generateTorus(float outerRadius, float innerRadius, uint32_t ringSegments, uint32_t sides) {
     QI_CORE_ASSERT(false, "Primitives::generateTorus is not implemented yet");
     return {};
 }
 
-MeshData Primitives::generatePrism(float width, float height, float depth, float leftToRight) {
+MeshDataPair Primitives::generatePrism(float width, float height, float depth, float leftToRight) {
     QI_CORE_ASSERT(false, "Primitives::generatePrism is not implemented yet");
     return {};
 }

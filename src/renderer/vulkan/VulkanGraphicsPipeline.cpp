@@ -2,6 +2,7 @@
 #include "VulkanGraphicsPipeline.hpp"
 #include "core/Assert.hpp"
 #include "core/FileSystem.hpp"
+#include "renderer/utils/VulkanUtils.hpp"
 #include "types/Vertex.hpp"
 #include <vulkan/vulkan_core.h>
 
@@ -140,12 +141,11 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
         vertexInputInfo.pVertexBindingDescriptions = nullptr;
         vertexInputInfo.vertexAttributeDescriptionCount = 0;
         vertexInputInfo.pVertexAttributeDescriptions = nullptr;
-    } 
+    }
     else {
         vertexInputInfo.vertexBindingDescriptionCount = 1;
         vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-        vertexInputInfo.vertexAttributeDescriptionCount =
-        static_cast<uint32_t>(attributeDescriptions.size());
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
         vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
     }
 
@@ -193,7 +193,7 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
         VK_COLOR_COMPONENT_B_BIT |
         VK_COLOR_COMPONENT_A_BIT;
 
-    if (m_type == VulkanUtils::PipelineType::Pipeline2D) {
+    if (m_type != VulkanUtils::PipelineType::PipelineSky) {
         colorBlendAttachment.blendEnable = VK_TRUE;
         colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;

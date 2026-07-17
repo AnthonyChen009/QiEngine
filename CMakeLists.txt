@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(QiEngine STATIC
     ${CMAKE_SOURCE_DIR}/include/external/stb/stb_image.cpp
+    ${CMAKE_SOURCE_DIR}/include/external/tiny_obj_loader/tiny_obj_loader.cpp
 )
 
 add_subdirectory(src/core)
@@ -22,7 +23,7 @@ target_include_directories(QiEngine
         ${CMAKE_SOURCE_DIR}/include
     PRIVATE
         ${CMAKE_SOURCE_DIR}/include/internal
-        ${CMAKE_SOURCE_DIR}/external
+        ${CMAKE_SOURCE_DIR}/include/external
 )
 
 target_precompile_headers(QiEngine PRIVATE

@@ -102,7 +102,7 @@ void RenderingServer::render3D(Scene& scene) {
         Transform3DComponent& transform = view.get<Transform3DComponent>(entity);
         MeshComponent& meshComponent = view.get<MeshComponent>(entity);
         if (meshComponent.mesh) {
-            m_renderer3D->drawMesh(meshComponent.mesh, transform.worldTransform);
+            m_renderer3D->drawMesh(meshComponent.mesh, transform.worldTransform, meshComponent.albedoTexture);
         }
     }
 

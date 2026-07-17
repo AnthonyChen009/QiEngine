@@ -14,7 +14,7 @@ public:
     void beginScene();
     void endScene();
     void drawCube();
-    void drawMesh(const std::shared_ptr<Mesh>& mesh, const glm::mat4& transform);
+    void drawMesh(const std::shared_ptr<Mesh>& mesh, const glm::mat4& transform, Texture2D* texture);
 
 
 private:

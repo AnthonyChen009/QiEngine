@@ -5,6 +5,8 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
+
+
 namespace Qi {
 
 struct Vertex {
@@ -12,6 +14,11 @@ struct Vertex {
     glm::vec3 normal;
     glm::vec3 color;
     glm::vec2 texCoord;
+
+    bool operator==(const Vertex& other) const {
+        return pos == other.pos && normal == other.normal &&
+                color == other.color && texCoord == other.texCoord;
+    }
 
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{};

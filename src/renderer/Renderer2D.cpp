@@ -38,7 +38,7 @@ void Renderer2D::drawTexturedQuad(glm::vec2 position, glm::vec2 size, float rota
                     * glm::rotate(glm::mat4(1.0f), glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f))
                     * glm::scale(glm::mat4(1.0f), glm::vec3(size, 1.0f));
     push.color = color;
-    push.textureIndex = texture ? texture->getIndex() : 0;
+    push.textureIndex = texture ? texture->getIndex() : -1;
     m_renderer.getBackend()->pushConstants2D(push);
     m_renderer.getBackend()->drawIndexed(6);
 }

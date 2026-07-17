@@ -83,6 +83,7 @@ struct DirectionalLightComponent {
 
 struct MeshComponent {
     std::shared_ptr<Mesh> mesh;
+    Texture2D* albedoTexture = nullptr;
     //scale here later maybe
 };
 
