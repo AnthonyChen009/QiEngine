@@ -2,6 +2,7 @@
 
 #include <string>
 #include <memory>
+#include "core/io/MeshLoader.hpp"
 #include "servers/rendering/RenderingServer.hpp"
 #include "core/Assert.hpp"
 #include "ResourceCache.hpp"
@@ -24,7 +25,8 @@ public:
 private:
     RenderingServer& m_renderingServer;
     ResourceCache<std::string, Mesh> m_meshCache;
-    //ResourceCache<std::string, Texture2D> m_textureCache;
+    ResourceCache<std::string, Texture2D> m_textureCache;
+    MeshLoader m_meshLoader;
 };
 
 template<> std::shared_ptr<Texture2D> ResourceLoader::Load<Texture2D>(const std::string& path);

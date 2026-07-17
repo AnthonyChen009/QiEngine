@@ -129,12 +129,15 @@ target_link_libraries(imgui PUBLIC
 )
 
 target_link_libraries(QiEngine
-    PUBLIC
+    PRIVATE
         glfw
         Vulkan::Vulkan
         spdlog::spdlog
-        glm::glm
-        OpenGL::GL
-        EnTT::EnTT
         imgui
+)
+
+target_link_libraries(QiEngine
+    PUBLIC
+        EnTT::EnTT
+        glm::glm
 )

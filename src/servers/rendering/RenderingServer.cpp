@@ -115,6 +115,10 @@ std::shared_ptr<Mesh> RenderingServer::createMesh(const std::string& path) {
 }
 //use by meshlib only
 std::shared_ptr<Mesh> RenderingServer::createMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
+    if (vertices.empty() || indices.empty()) {
+        QI_CORE_ERROR("createMesh called with empty vertex/index data — skipping mesh creation.");
+        return nullptr;
+    }
     std::shared_ptr<VertexBuffer> vertexBuffer = m_renderer->getBackend()->createVertexBuffer(vertices);
     std::shared_ptr<IndexBuffer> indexBuffer = m_renderer->getBackend()->createIndexBuffer(indices);
     return std::make_shared<Mesh>(vertexBuffer, indexBuffer);

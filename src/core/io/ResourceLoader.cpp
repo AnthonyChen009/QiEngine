@@ -1,3 +1,4 @@
+#include "core/io/MeshLoader.hpp"
 #include "servers/rendering/RenderingServer.hpp"
 #include "renderer/vulkan/Texture2D.hpp"
 #include "ResourceLoader.hpp"
@@ -7,11 +8,11 @@ namespace Qi {
 template<>
 std::shared_ptr<Texture2D>
 ResourceLoader::Load<Texture2D>(const std::string& path) {
-    // if (auto cached = m_textureCache.get(path)) {
-    //     return cached;
-    // }
-    auto texture = m_renderingServer.createTexture2D(path);
-    //m_textureCache.insert(path, texture);
+    if (auto cached = m_textureCache.get(path)) {
+        return cached;
+    }
+    std::shared_ptr<Texture2D> texture = m_renderingServer.createTexture2D(path);
+    m_textureCache.insert(path, texture);
     return texture;
 }
 
@@ -21,7 +22,9 @@ ResourceLoader::Load<Mesh>(const std::string& path) {
     if (auto cached = m_meshCache.get(path)) {
         return cached;
     }
-    std::shared_ptr<Mesh> mesh = m_renderingServer.createMesh(path);
+    MeshData data = m_meshLoader.getMeshData(path);
+
+    std::shared_ptr<Mesh> mesh = m_renderingServer.createMesh(data.vertices, data.indices);
     m_meshCache.insert(path, mesh);
     return mesh;
 }

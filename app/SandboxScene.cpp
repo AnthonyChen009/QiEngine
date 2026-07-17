@@ -3,8 +3,10 @@
 #include "core/Application.hpp"
 #include "core/KeyCodes.hpp"
 #include "core/api/MeshPrimitives.hpp"
+#include "core/io/ResourceLoader.hpp"
 #include "os/Memory.hpp"
 
+#include "renderer/vulkan/Mesh.hpp"
 #include "renderer/vulkan/Texture2D.hpp"
 #include "scene/2d/Sprite2D.hpp"
 #include "scene/3d/Camera3D.hpp"
@@ -15,9 +17,9 @@
 #include <glm/ext/vector_float2.hpp>
 
 void SandboxScene::onReady() {
-    // m_player = QiNew<Qi::Sprite2D>();
-    // addNode(m_player);
-    // m_player->setTexture(Qi::Application::get().getResourceLoader().Load<Qi::Texture2D>("images/textureTest.jpg"));
+    m_player = QiNew<Qi::Sprite2D>();
+    addNode(m_player);
+    m_player->setTexture(Qi::Application::get().getResourceLoader().Load<Qi::Texture2D>("images/textureTest.jpg"));
 
     m_testNode = QiNew<Qi::MeshInstance3D>();
     addNode(m_testNode);
@@ -26,7 +28,7 @@ void SandboxScene::onReady() {
 
     m_testNode2 = QiNew<Qi::MeshInstance3D>();
     addNode(m_testNode2);
-    m_testNode2->setMesh(Qi::MeshPrimitives::BoxMesh());
+    m_testNode2->setMesh(Qi::Application::get().getResourceLoader().Load<Qi::Mesh>("chicken.obj"));
     m_testNode2->setPosition({0,0,2});
 
     m_camera = QiNew<CameraController>();

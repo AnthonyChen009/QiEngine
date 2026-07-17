@@ -6,4 +6,5 @@ target_sources(QiEngine PRIVATE
     api/Input.cpp
     api/MeshPrimitives.cpp
     io/ResourceLoader.cpp
+    io/MeshLoader.cpp
 )
