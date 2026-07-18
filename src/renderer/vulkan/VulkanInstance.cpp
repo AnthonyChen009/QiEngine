@@ -182,7 +182,7 @@ VkInstance VulkanInstance::getVkInstance() {
 
 std::vector<const char*> VulkanInstance::getRequiredExtensions() {
     uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions = VulkanPlatform::getRequiredVulkanExtensions(glfwExtensionCount);
+    const char* const* glfwExtensions = VulkanPlatform::getRequiredVulkanExtensions(glfwExtensionCount);
 
     std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 

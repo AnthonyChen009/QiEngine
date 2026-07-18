@@ -1,9 +1,13 @@
 #include "Input.hpp"
 #include "servers/input/InputServer.hpp"
 #include "core/Application.hpp"
-#include <GLFW/glfw3.h>
+#include <SDL3/SDL.h>
 
 namespace Qi::Input {
+
+static float s_savedCursorX = 0.0f;
+static float s_savedCursorY = 0.0f;
+static CursorMode s_currentCursorMode = CursorMode::Normal;
 
 InputServer& server() {
     return Application::get().getInputServer();
@@ -18,13 +22,31 @@ bool isMouseButtonJustPressed(MouseCode button) { return server().isMouseButtonJ
 bool isMouseButtonJustReleased(MouseCode button) { return server().isMouseButtonJustReleased(button); }
 
 void setCursorMode(CursorMode mode) {
-    int glfwMode = GLFW_CURSOR_NORMAL;
-        switch (mode) {
-        case CursorMode::Normal: glfwMode = GLFW_CURSOR_NORMAL;   break;
-        case CursorMode::Hidden: glfwMode = GLFW_CURSOR_HIDDEN;   break;
-        case CursorMode::Locked: glfwMode = GLFW_CURSOR_DISABLED; break;
+    SDL_Window* window = static_cast<SDL_Window*>(Application::get().getWindow().getNativeWindow());
+
+    if (mode == CursorMode::Locked && s_currentCursorMode != CursorMode::Locked) {
+        // Save position before locking
+        SDL_GetMouseState(&s_savedCursorX, &s_savedCursorY);
     }
-    glfwSetInputMode(static_cast<GLFWwindow*>(Application::get().getWindow().getNativeWindow()), GLFW_CURSOR, glfwMode);
+
+    switch (mode) {
+        case CursorMode::Normal:
+            SDL_SetWindowRelativeMouseMode(window, false);
+            SDL_ShowCursor();
+            if (s_currentCursorMode == CursorMode::Locked) {
+                SDL_WarpMouseInWindow(window, s_savedCursorX, s_savedCursorY);
+            }
+            break;
+        case CursorMode::Hidden:
+            SDL_SetWindowRelativeMouseMode(window, false);
+            SDL_HideCursor();
+            break;
+        case CursorMode::Locked:
+            SDL_SetWindowRelativeMouseMode(window, true);
+            break;
+    }
+
+    s_currentCursorMode = mode;
 }
 
 glm::vec2 getMousePosition() { return server().getMousePosition(); }

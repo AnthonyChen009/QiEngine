@@ -40,11 +40,11 @@ private:
     bool onMouseButtonReleased(MouseButtonReleasedEvent& e);
     bool onMouseMoved(MouseMovedEvent& e);
 
-    std::array<bool, 512> m_currentKeys{};
+    std::unordered_set<KeyCode> m_currentKeys;
     std::unordered_set<KeyCode> m_justPressedKeys;
     std::unordered_set<KeyCode> m_justReleasedKeys;
 
-    std::array<bool, 8> m_currentMouseButtons{};
+    std::unordered_set<MouseCode> m_currentMouseButtons;
     std::unordered_set<MouseCode> m_justPressedMouseButtons;
     std::unordered_set<MouseCode> m_justReleasedMouseButtons;
 

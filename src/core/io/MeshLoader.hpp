@@ -1,6 +1,7 @@
 #pragma once
 #include "types/Vertex.hpp"
 #include <glm/glm.hpp>
+#include <string>
 
 namespace Qi {
 

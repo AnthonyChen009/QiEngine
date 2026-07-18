@@ -7,6 +7,8 @@
 #include <functional>
 
 namespace Qi {
+    using RawEventCallback = std::function<void(void*)>;
+
     enum class GraphicsAPI {
         None = 0,
         OpenGL,
@@ -39,5 +41,7 @@ namespace Qi {
 		virtual void waitForValidFramebufferSize() = 0;
 
 		static Scope<Window> create(const WindowProps& props = WindowProps());
+
+		virtual void setRawEventCallback(const RawEventCallback& callback) = 0;
     };
 }

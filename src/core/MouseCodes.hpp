@@ -1,27 +1,22 @@
 #pragma once
-#include "cstdint"
+#include <cstdint>
+#include <SDL3/SDL_mouse.h>
 
 namespace Qi {
     using MouseCode = uint16_t;
-
     namespace Mouse {
        	enum : MouseCode {
-      		Button0 = 0,
-      		Button1 = 1,
-      		Button2 = 2,
-      		Button3 = 3,
-      		Button4 = 4,
-      		Button5 = 5,
-      		Button6 = 6,
-      		Button7 = 7,
-
-      		ButtonLast = Button7,
-      		ButtonLeft = Button0,
-      		ButtonRight = Button1,
-      		ButtonMiddle = Button2
+      		Button0     = SDL_BUTTON_LEFT,   // 1
+      		Button1     = SDL_BUTTON_MIDDLE, // 2
+      		Button2     = SDL_BUTTON_RIGHT,  // 3
+      		Button3     = SDL_BUTTON_X1,     // 4
+      		Button4     = SDL_BUTTON_X2,     // 5
+      		ButtonLast  = Button4,
+      		ButtonLeft  = SDL_BUTTON_LEFT,
+      		ButtonRight = SDL_BUTTON_RIGHT,
+      		ButtonMiddle = SDL_BUTTON_MIDDLE
        	};
     }
-
     enum class CursorMode {
 		Normal = 0,
 		Hidden = 1,

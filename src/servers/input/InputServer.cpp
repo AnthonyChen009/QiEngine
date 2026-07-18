@@ -6,8 +6,9 @@
 namespace Qi {
 
 bool InputServer::isKeyPressed(KeyCode key) {
-    return key < m_currentKeys.size() && m_currentKeys[key];
+    return m_currentKeys.contains(key);
 }
+
 
 bool InputServer::isKeyJustPressed(KeyCode key) {
     return m_justPressedKeys.contains(key);
@@ -18,7 +19,7 @@ bool InputServer::isKeyJustReleased(KeyCode key) {
 }
 
 bool InputServer::isMouseButtonPressed(MouseCode button) {
-    return button < m_currentMouseButtons.size() && m_currentMouseButtons[button];
+    return m_currentMouseButtons.contains(button);
 }
 
 bool InputServer::isMouseButtonJustPressed(MouseCode button) {
@@ -40,38 +41,31 @@ void InputServer::onEvent(Event& event) {
 
 bool InputServer::onKeyPressed(KeyPressedEvent& event) {
     KeyCode key = event.getKeyCode();
-    if (key >= m_currentKeys.size()) return false;
-
-    m_currentKeys[key] = true;
+    m_currentKeys.insert(key);
     if (!event.IsRepeat()) {
         m_justPressedKeys.insert(key);
     }
     return false;
 }
 
+
 bool InputServer::onKeyReleased(KeyReleasedEvent& event) {
     KeyCode key = event.getKeyCode();
-    if (key >= m_currentKeys.size()) return false;
-
-    m_currentKeys[key] = false;
+    m_currentKeys.erase(key);
     m_justReleasedKeys.insert(key);
     return false;
 }
 
 bool InputServer::onMouseButtonPressed(MouseButtonPressedEvent& event) {
     MouseCode button = event.getMouseButton();
-    if (button >= m_currentMouseButtons.size()) return false;
-
-    m_currentMouseButtons[button] = true;
+    m_currentMouseButtons.insert(button);
     m_justPressedMouseButtons.insert(button);
     return false;
 }
 
 bool InputServer::onMouseButtonReleased(MouseButtonReleasedEvent& event) {
     MouseCode button = event.getMouseButton();
-    if (button >= m_currentMouseButtons.size()) return false;
-
-    m_currentMouseButtons[button] = false;
+    m_currentMouseButtons.erase(button);
     m_justReleasedMouseButtons.insert(button);
     return false;
 }
