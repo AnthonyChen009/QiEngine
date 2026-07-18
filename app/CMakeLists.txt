@@ -1,7 +1,7 @@
 add_executable(QiApp
     SandboxApp.cpp
-    SandboxLayer.cpp
     SandboxScene.cpp
+    game/CameraController.cpp
 )
 
 
@@ -13,9 +13,15 @@ target_compile_definitions(QiApp PRIVATE
 )
 
 if(MSVC)
-    file(COPY ${CMAKE_SOURCE_DIR}/assets
-         DESTINATION ${CMAKE_BINARY_DIR}/app/Debug)
+    add_custom_command(TARGET QiApp POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/assets
+        $<TARGET_FILE_DIR:QiApp>/assets
+    )
 else()
-    file(COPY ${CMAKE_SOURCE_DIR}/assets
-         DESTINATION ${CMAKE_BINARY_DIR}/app)
+    add_custom_command(TARGET QiApp POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/assets
+        $<TARGET_FILE_DIR:QiApp>/assets
+    )
 endif()

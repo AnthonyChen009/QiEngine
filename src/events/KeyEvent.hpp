@@ -11,6 +11,7 @@ public:
     KeyCode getKeyCode() const {
        return m_keyCode;
     }
+    QI_EVENT_CLASS_CATEGORY(eventCategoryKeyboard | eventCategoryInput)
 protected:
 	KeyEvent(const KeyCode keycode) : m_keyCode(keycode) {}
 	KeyCode m_keyCode;

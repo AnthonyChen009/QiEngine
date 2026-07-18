@@ -64,6 +64,7 @@ void VulkanRenderPass::createRenderPass(VkFormat swapChainImageFormat) {
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
     std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
@@ -72,6 +73,7 @@ void VulkanRenderPass::createRenderPass(VkFormat swapChainImageFormat) {
     renderPassInfo.pSubpasses = &subpass;
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
+
 
     VkResult result = vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPass);
 

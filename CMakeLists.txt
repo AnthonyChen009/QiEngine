@@ -5,9 +5,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(QiEngine STATIC
     ${CMAKE_SOURCE_DIR}/include/external/stb/stb_image.cpp
+    ${CMAKE_SOURCE_DIR}/include/external/tiny_obj_loader/tiny_obj_loader.cpp
 )
-
-add_library(glad ${CMAKE_SOURCE_DIR}/include/external/glad/src/glad.c)
 
 add_subdirectory(src/core)
 add_subdirectory(src/platform)
@@ -16,11 +15,7 @@ add_subdirectory(src/os)
 add_subdirectory(src/scene)
 add_subdirectory(src/utils)
 add_subdirectory(app)
-add_subdirectory(src/imgui)
-
-target_include_directories(glad PUBLIC
-    ${CMAKE_SOURCE_DIR}/include/external/glad/include
-)
+add_subdirectory(src/servers)
 
 target_include_directories(QiEngine
     PUBLIC
@@ -28,7 +23,7 @@ target_include_directories(QiEngine
         ${CMAKE_SOURCE_DIR}/include
     PRIVATE
         ${CMAKE_SOURCE_DIR}/include/internal
-        ${CMAKE_SOURCE_DIR}/external
+        ${CMAKE_SOURCE_DIR}/include/external
 )
 
 target_precompile_headers(QiEngine PRIVATE
@@ -41,6 +36,7 @@ target_compile_definitions(QiEngine
 )
 
 include(FetchContent)
+set(FETCHCONTENT_BASE_DIR ${CMAKE_SOURCE_DIR}/include/external)
 
 if(WIN32)
     FetchContent_Declare(
@@ -97,19 +93,29 @@ FetchContent_Declare(
     entt
     GIT_REPOSITORY https://github.com/skypjack/entt.git
     GIT_TAG v3.16.0
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/include/external/entt
 )
 message(STATUS "Fetching EnTT...")
 FetchContent_MakeAvailable(entt)
 message(STATUS "EnTT ready")
 
+#sdl3
+FetchContent_Declare(
+    SDL3
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+    GIT_TAG release-3.4.12
+)
+message(STATUS "Fetching SDL3...")
+FetchContent_MakeAvailable(SDL3)
+message(STATUS "SDL3 ready")
+
+
 # ImGui
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG        docking
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/include/external/imgui
+    GIT_TAG docking
 )
+
 message(STATUS "Fetching ImGui...")
 FetchContent_MakeAvailable(imgui)
 message(STATUS "ImGui ready")
@@ -137,11 +143,15 @@ target_link_libraries(imgui PUBLIC
 target_link_libraries(QiEngine
     PUBLIC
         glfw
+        sdl
         Vulkan::Vulkan
         spdlog::spdlog
-        glm::glm
-        glad
-        OpenGL::GL
-        EnTT::EnTT
         imgui
+        SDL3::SDL3
+)
+
+target_link_libraries(QiEngine
+    PUBLIC
+        EnTT::EnTT
+        glm::glm
 )

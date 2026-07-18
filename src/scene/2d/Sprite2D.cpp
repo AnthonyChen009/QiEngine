@@ -1,5 +1,7 @@
 #include "scene/2d/Sprite2D.hpp"
 #include "core/Log.hpp"
+#include "renderer/vulkan/Texture2D.hpp"
+#include <memory>
 namespace Qi {
 
 Sprite2D::Sprite2D(const std::string& name, glm::vec4 color, glm::vec2 size) : Node(name), m_color(color), m_size(size) {}
@@ -33,9 +35,9 @@ const glm::vec2& Sprite2D::getWorldPosition() const {
     return getComponent<TransformComponent>().worldPosition;
 }
 
-void Sprite2D::setTexture(const std::string& path) {
+void Sprite2D::setTexture(const std::shared_ptr<Texture2D>& texture) {
     //QI_CORE_INFO("Setting texture: {0}", path);
-    getComponent<SpriteComponent>().texture = Texture2D::load(path);
+    getComponent<SpriteComponent>().texture = texture.get();
 }
 
 }

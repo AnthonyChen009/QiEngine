@@ -4,6 +4,7 @@
 #include <vector>
 #include <entt/entt.hpp>
 #include "core/Timestep.hpp"
+#include "scene/NameRegistry.hpp"
 
 namespace Qi {
 
@@ -13,15 +14,13 @@ class Timestep;
 
 class Node {
 public:
-    Node(const std::string& name = "Node") : m_name(name) {
-
-    }
+    Node(const std::string& name = "Node");
 
     virtual ~Node() = default;
 
     virtual void onReady() {}
     virtual void onUpdate(Timestep ts) {}
-    virtual void onEvent(Event& e) {}
+    virtual void onEvent(Event& event) {}
 
     void destroy();
     void addChild(Node* node);
@@ -46,6 +45,10 @@ public:
         return m_registry->all_of<T>(m_entity);
     }
 
+    bool isInsideTree() const {
+        return m_scene != nullptr;
+    }
+
 protected:
     std::string m_name;
     int32_t m_index = -1;
@@ -54,6 +57,7 @@ protected:
 
     entt::entity m_entity = entt::null;
     entt::registry* m_registry = nullptr;
+    NameRegistry m_nameRegistry;
     Scene* m_scene = nullptr;
 
     friend class Scene;

@@ -3,7 +3,10 @@
 #include "renderer/Renderer2D.hpp"
 #include "os/Memory.hpp"
 #include "core/Assert.hpp"
+#include "scene/3d/Camera3D.hpp"
+#include "scene/3d/Node3D.hpp"
 #include <algorithm>
+#include <glm/ext/matrix_transform.hpp>
 #include <stack>
 
 namespace Qi {
@@ -14,8 +17,13 @@ struct TransformStackEntry {
     float parentRot;
 };
 
+struct TransformStackEntry3D {
+    int32_t nodeIndex;
+    glm::mat4 parentTransform;
+};
+
 Scene::Scene() {
-    Node* root = QiNew<Node>("root");
+    Node3D* root = QiNew<Node3D>("root");
 
     root->m_index = 0;
     root->m_parentIndex = -1;
@@ -127,7 +135,7 @@ void Scene::destroyNode(int32_t index) {
     }
 }
 
-void Scene::updateWorldTransforms(int32_t rootIndex) {
+void Scene::updateWorldTransforms2D(int32_t rootIndex) {
     std::vector<TransformStackEntry> stack;
     stack.push_back({rootIndex, {0.0f, 0.0f}, 0.0f});
     while (!stack.empty()) {
@@ -138,11 +146,12 @@ void Scene::updateWorldTransforms(int32_t rootIndex) {
         if (!node)
             continue;
 
+        //2D
         glm::vec2 worldPos = entry.parentPos;
         float worldRot = entry.parentRot;
 
         if (node->hasComponent<TransformComponent>()) {
-            auto& transform = node->getComponent<TransformComponent>();
+            TransformComponent& transform = node->getComponent<TransformComponent>();
 
             transform.worldPosition =
                 entry.parentPos + transform.position;
@@ -164,14 +173,63 @@ void Scene::updateWorldTransforms(int32_t rootIndex) {
     }
 }
 
-void Scene::processDestroyQueue() {
-    for (int32_t index : m_destroyQueue)
-        destroyNode(index);
+void Scene::updateWorldTransforms3D(int32_t rootIndex) {
+    std::vector<TransformStackEntry3D> stack;
+    stack.push_back({rootIndex, glm::mat4(1.0f)});
 
+    while (!stack.empty()) {
+        TransformStackEntry3D entry = stack.back();
+        stack.pop_back();
+
+        Node* node = m_nodes[entry.nodeIndex];
+        if (!node)
+            continue;
+
+        glm::mat4 worldTransform = entry.parentTransform;
+
+        if (node->hasComponent<Transform3DComponent>()) {
+            Transform3DComponent& transform = node->getComponent<Transform3DComponent>();
+            transform.localTransform = glm::translate(glm::mat4(1.0f), transform.position) * glm::mat4_cast(transform.rotation) * glm::scale(glm::mat4(1.0f), transform.scale);
+            transform.worldTransform = entry.parentTransform * transform.localTransform;
+
+            worldTransform = transform.worldTransform;
+        }
+
+        for (int32_t childIndex : node->m_childIndices) {
+            stack.push_back({
+                childIndex,
+                worldTransform
+            });
+        }
+    }
+}
+
+void Scene::processDestroyQueue() {
+    for (int32_t index : m_destroyQueue) {
+        Node* node = m_nodes[index];
+        if (!node)
+            continue;
+
+        if (node == m_activeCamera)
+            m_activeCamera = nullptr;
+
+        destroyNode(index);
+    }
     m_destroyQueue.clear();
 }
 
 void Scene::onUpdate(Timestep ts) {
+
+}
+
+void Scene::onPhysicsUpdate(Timestep ts) {
+
+}
+
+void Scene::onPhysicsTick(Timestep ts) {
+    onPhysicsUpdate(ts);
+
+    //TO-DO physics interpolation
 
 }
 
@@ -182,36 +240,48 @@ void Scene::onTick(Timestep ts) {
         if (node)
             node->onUpdate(ts);
     }
-
     processDestroyQueue();
 
-    // movement system
-    auto moveView = m_registry.view<TransformComponent, RigidbodyComponent>();
+    auto moveView = m_registry.view<TransformComponent, Rigidbody2DComponent>();
     for (auto entity : moveView) {
         TransformComponent& transform = moveView.get<TransformComponent>(entity);
-        RigidbodyComponent& rb = moveView.get<RigidbodyComponent>(entity);
+        Rigidbody2DComponent& rb = moveView.get<Rigidbody2DComponent>(entity);
         transform.position += rb.velocity * (float)ts;
     }
-    //update child nodes
-    updateWorldTransforms(0);
-    // render system
-    Renderer2D::beginScene();
-    auto view = m_registry.view<TransformComponent, SpriteComponent>();
-    for (auto entity : view) {
-        TransformComponent& transform = view.get<TransformComponent>(entity);
-        SpriteComponent& sprite = view.get<SpriteComponent>(entity);
-        if (sprite.texture)
-            Renderer2D::drawTexturedQuad(transform.worldPosition, transform.size, transform.worldRotation, sprite.color, sprite.texture);
-        else
-            Renderer2D::drawQuad(transform.worldPosition, transform.size, transform.worldRotation, sprite.color);
+
+    auto moveView3D = m_registry.view<Transform3DComponent, Rigidbody3DComponent>();
+    for (auto entity : moveView3D) {
+        Transform3DComponent& transform = moveView3D.get<Transform3DComponent>(entity);
+        Rigidbody3DComponent& rb = moveView3D.get<Rigidbody3DComponent>(entity);
+        transform.position += rb.velocity * (float)ts;
+        transform.updateLocalTransform();
     }
-    Renderer2D::endScene();
+
+    // movement system
+    //transform system
+    // auto transformView3D = m_registry.view<Transform3DComponent>();
+    // for (auto entity : transformView3D) {
+    //     Transform3DComponent& transform = transformView3D.get<Transform3DComponent>(entity);
+    //     transform.updateLocalTransform();
+    // }
+
+    //update child nodes
+    updateWorldTransforms2D(0);
+    updateWorldTransforms3D(0);
 }
 
-void Scene::onEvent(Event& e) {
+void Scene::initialSize(uint32_t width, uint32_t height) {
+    for (Node* node : m_nodes) {
+        if (Camera3D* camera = dynamic_cast<Camera3D*>(node)) {
+            camera->setViewportSize(width, height);
+        }
+    }
+}
+
+void Scene::onEvent(Event& event) {
     for (Node* node : m_nodes) {
         if (node)
-            node->onEvent(e);
+            node->onEvent(event);
     }
 
     processDestroyQueue();

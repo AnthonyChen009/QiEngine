@@ -2,7 +2,9 @@
 #include "VulkanGraphicsPipeline.hpp"
 #include "core/Assert.hpp"
 #include "core/FileSystem.hpp"
+#include "renderer/utils/VulkanUtils.hpp"
 #include "types/Vertex.hpp"
+#include <vulkan/vulkan_core.h>
 
 namespace Qi {
 
@@ -45,7 +47,7 @@ void VulkanGraphicsPipeline::createDescriptorSetLayout() {
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     uboLayoutBinding.pImmutableSamplers = nullptr;
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
@@ -81,12 +83,16 @@ void VulkanGraphicsPipeline::createDescriptorSetLayout() {
 void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
     std::vector<char> vertShaderCode, fragShaderCode;
     if (m_type == VulkanUtils::PipelineType::Pipeline2D) {
-        vertShaderCode = FileSystem::readBinaryFile("shaders/vert2D.spv");
+        vertShaderCode = FileSystem::readBinaryFile("shaders/vert3D.spv");
         fragShaderCode = FileSystem::readBinaryFile("shaders/frag2D.spv");
     }
-    else {
+    else if (m_type == VulkanUtils::PipelineType::Pipeline3D){
         vertShaderCode = FileSystem::readBinaryFile("shaders/vert3D.spv");
         fragShaderCode = FileSystem::readBinaryFile("shaders/frag3D.spv");
+    }
+    else {
+        vertShaderCode = FileSystem::readBinaryFile("shaders/vertSky.spv");
+        fragShaderCode = FileSystem::readBinaryFile("shaders/fragSky.spv");
     }
 
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
@@ -119,10 +125,8 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
     VkVertexInputBindingDescription bindingDescription;
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 
-    if (m_type == VulkanUtils::PipelineType::Pipeline2D) {
-        bindingDescription = Vertex::getBindingDescription();
-        auto attrs = Vertex::getAttributeDescriptions();
-        attributeDescriptions = {attrs.begin(), attrs.end()};
+    if (m_type == VulkanUtils::PipelineType::PipelineSky) {
+
     }
     else {
         bindingDescription = Vertex::getBindingDescription();
@@ -132,10 +136,18 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+    if (m_type == VulkanUtils::PipelineType::PipelineSky) {
+        vertexInputInfo.vertexBindingDescriptionCount = 0;
+        vertexInputInfo.pVertexBindingDescriptions = nullptr;
+        vertexInputInfo.vertexAttributeDescriptionCount = 0;
+        vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+    }
+    else {
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+    }
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -153,7 +165,7 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizer.cullMode = (m_type == VulkanUtils::PipelineType::PipelineSky) ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -164,8 +176,8 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencil.depthTestEnable = VK_TRUE;
-    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthTestEnable = (m_type == VulkanUtils::PipelineType::PipelineSky) ? VK_FALSE : VK_TRUE;
+    depthStencil.depthWriteEnable = (m_type == VulkanUtils::PipelineType::PipelineSky) ? VK_FALSE : VK_TRUE;
     depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.minDepthBounds = 0.0f;
@@ -181,7 +193,7 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
         VK_COLOR_COMPONENT_B_BIT |
         VK_COLOR_COMPONENT_A_BIT;
 
-    if (m_type == VulkanUtils::PipelineType::Pipeline2D) {
+    if (m_type != VulkanUtils::PipelineType::PipelineSky) {
         colorBlendAttachment.blendEnable = VK_TRUE;
         colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -208,7 +220,7 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(PushConstant2D);
+    pushConstantRange.size = sizeof(PushConstant);
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

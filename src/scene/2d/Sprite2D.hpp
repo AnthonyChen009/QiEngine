@@ -20,11 +20,12 @@ public:
     const glm::vec2& getSize() const { return m_size; }
     const glm::vec2& getPosition() const;
     const glm::vec2& getWorldPosition() const;
-    void setTexture(const std::string& path);
+    void setTexture(const std::shared_ptr<Texture2D>& texture);
 
 private:
     glm::vec4 m_color;
     glm::vec2 m_size;
+
 };
 
 }
