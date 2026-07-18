@@ -143,7 +143,6 @@ target_link_libraries(imgui PUBLIC
 target_link_libraries(QiEngine
     PUBLIC
         glfw
-        sdl
         Vulkan::Vulkan
         spdlog::spdlog
         imgui
