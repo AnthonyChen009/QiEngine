@@ -24,7 +24,8 @@ public:
 
     virtual void onReady() {}
     virtual void onUpdate(Timestep ts);
-    void onTick(Timestep ts);
+    virtual void onPhysicsUpdate(Timestep ts);
+
     virtual void onEvent(Event& event);
 
     Node* getNode(int32_t index) { return m_nodes[index]; }
@@ -37,6 +38,9 @@ public:
     }
 
 private:
+    friend class SceneManager;
+    void onTick(Timestep ts);
+    void onPhysicsTick(Timestep ts);
     void updateWorldTransforms2D(int32_t rootIndex);
     void updateWorldTransforms3D(int32_t rootIndex);
 

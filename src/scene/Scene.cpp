@@ -222,6 +222,17 @@ void Scene::onUpdate(Timestep ts) {
 
 }
 
+void Scene::onPhysicsUpdate(Timestep ts) {
+
+}
+
+void Scene::onPhysicsTick(Timestep ts) {
+    onPhysicsUpdate(ts);
+
+    //TO-DO physics interpolation
+
+}
+
 void Scene::onTick(Timestep ts) {
     onUpdate(ts);
 
@@ -229,10 +240,8 @@ void Scene::onTick(Timestep ts) {
         if (node)
             node->onUpdate(ts);
     }
-
     processDestroyQueue();
 
-    // movement system
     auto moveView = m_registry.view<TransformComponent, Rigidbody2DComponent>();
     for (auto entity : moveView) {
         TransformComponent& transform = moveView.get<TransformComponent>(entity);
@@ -247,6 +256,8 @@ void Scene::onTick(Timestep ts) {
         transform.position += rb.velocity * (float)ts;
         transform.updateLocalTransform();
     }
+
+    // movement system
     //transform system
     // auto transformView3D = m_registry.view<Transform3DComponent>();
     // for (auto entity : transformView3D) {

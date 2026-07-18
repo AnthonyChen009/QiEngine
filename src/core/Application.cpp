@@ -1,6 +1,7 @@
 #include "Application.hpp"
 #include "Base.hpp"
 #include "Window.hpp"
+#include "core/Timestep.hpp"
 #include "core/io/ResourceLoader.hpp"
 #include "scene/Scene.hpp"
 #include "servers/rendering/RenderingServer.hpp"
@@ -44,16 +45,40 @@ void Application::run() {
         Timestep timestep = time - m_lastFrameTime;
         m_lastFrameTime = time;
 
+        float frameTime = std::min(timestep.getSeconds(), 0.25f);
+        m_fixedUpdateAccumulator += frameTime;
+
+        m_inputServer.update();
+        m_window->onUpdate();
+
         if (!m_minimized) {
+            m_physicsSteps = 0;
+            // while (m_fixedUpdateAccumulator >= m_fixedTimestep && m_physicsSteps < m_maxPhysicsSteps) {
+            //     m_sceneManager.onPhysicsUpdate(Timestep(m_fixedTimestep));
+            //     m_fixedUpdateAccumulator -= m_fixedTimestep;
+            //     m_physicsSteps++;
+            // }
+
+            // float physicsTimeMs = (Time::getTime() - time) * 1000.0f;
+
+            // if (m_fixedUpdateAccumulator >= m_fixedTimestep) {
+            //     QI_CORE_WARN(
+            //         "Physics couldn't keep up! Took {:.2f} ms, {} steps still pending.",
+            //         physicsTimeMs,
+            //         static_cast<int>(m_fixedUpdateAccumulator / m_fixedTimestep)
+            //     );
+            // }
+
             float renderStart = Time::getTime();
+
+            m_sceneManager.onUpdate(timestep);
+
             if (!m_renderingServer->beginFrame())
                 continue;
             if (m_minimized)
                 continue;
 
             float updateStart = Time::getTime();
-
-            m_sceneManager.onUpdate(timestep);
             m_renderingServer->render(m_sceneManager.getCurrentScene());
 
             float updateEnd = Time::getTime();
@@ -68,8 +93,6 @@ void Application::run() {
             float renderEnd = Time::getTime();
             m_renderTimeMs = (renderEnd - renderStart) * 1000.0;
         }
-        m_inputServer.update();
-        m_window->onUpdate();
 
     }
 }

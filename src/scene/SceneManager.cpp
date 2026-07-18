@@ -20,7 +20,11 @@ void SceneManager::setScene(std::unique_ptr<Scene> scene) {
 void SceneManager::onUpdate(Qi::Timestep ts) {
     QI_CORE_ASSERT(m_currentScene, "No active scene!");
     m_currentScene->onTick(ts);
+}
 
+void SceneManager::onPhysicsUpdate(Qi::Timestep ts) {
+    QI_CORE_ASSERT(m_currentScene, "No active scene!");
+    m_currentScene->onTick(ts);
 }
 
 Scene& SceneManager::getCurrentScene() {

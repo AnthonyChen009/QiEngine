@@ -10,6 +10,7 @@ public:
 
 	void onUpdate(Qi::Timestep ts);
 	void onEvent(Qi::Event& event);
+	void onPhysicsUpdate(Qi::Timestep ts);
 	Scene& getCurrentScene();
 
 private:

@@ -5,8 +5,16 @@ compile_commands.json
 QiEngine.log
 QiEngine.log
 /include/external/entt
-/external/entt
 /include/external/imgui
+/include/external/entt-subbuild
+/include/external/entt-build
+/include/external/entt-src
+/include/external/sdl3-src
+/include/external/imgui-src
+/include/external/imgui-subbuild
+/include/external/imgui-build
+/include/external/sdl3-subbuild
+/include/external/sdl3-build
 assets/imgui.ini
 assets/imgui.ini
 assets/imgui.ini

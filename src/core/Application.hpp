@@ -73,7 +73,10 @@ private:
     float m_lastFrameTime = 0.0f;
     float m_updateTimeMs = 0.0f;
     float m_renderTimeMs = 0.0f;
-
+    float m_fixedTimestep = 1.0f / 60.0f;
+    float m_fixedUpdateAccumulator = 0.0f;
+    const int m_maxPhysicsSteps = 5;
+    int m_physicsSteps = 0;
 
 private:
     static Application* s_instance;

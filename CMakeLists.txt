@@ -36,6 +36,7 @@ target_compile_definitions(QiEngine
 )
 
 include(FetchContent)
+set(FETCHCONTENT_BASE_DIR ${CMAKE_SOURCE_DIR}/include/external)
 
 if(WIN32)
     FetchContent_Declare(
@@ -92,19 +93,29 @@ FetchContent_Declare(
     entt
     GIT_REPOSITORY https://github.com/skypjack/entt.git
     GIT_TAG v3.16.0
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/include/external/entt
 )
 message(STATUS "Fetching EnTT...")
 FetchContent_MakeAvailable(entt)
 message(STATUS "EnTT ready")
+
+#sdl3
+FetchContent_Declare(
+    SDL3
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+    GIT_TAG release-3.4.12
+)
+message(STATUS "Fetching SDL3...")
+FetchContent_MakeAvailable(SDL3)
+message(STATUS "SDL3 ready")
+
 
 # ImGui
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
     GIT_TAG docking
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/include/external/imgui
 )
+
 message(STATUS "Fetching ImGui...")
 FetchContent_MakeAvailable(imgui)
 message(STATUS "ImGui ready")
@@ -132,9 +143,11 @@ target_link_libraries(imgui PUBLIC
 target_link_libraries(QiEngine
     PRIVATE
         glfw
+        sdl
         Vulkan::Vulkan
         spdlog::spdlog
         imgui
+        SDL3::SDL3
 )
 
 target_link_libraries(QiEngine
