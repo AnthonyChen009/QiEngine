@@ -147,9 +147,8 @@ void WindowsWindow::waitForValidFramebufferSize() {
     SDL_GetWindowSizeInPixels(m_window, &width, &height);
 
     while (width == 0 || height == 0) {
-        SDL_GetWindowSizeInPixels(m_window, &width, &height);
         SDL_WaitEvent(nullptr);
-        
+        SDL_GetWindowSizeInPixels(m_window, &width, &height);
     }
 
     m_data.width = width;
