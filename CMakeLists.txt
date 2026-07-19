@@ -32,6 +32,7 @@ target_precompile_headers(QiEngine PRIVATE
 
 target_compile_definitions(QiEngine
     PUBLIC
+        $<$<CONFIG:Debug>:QI_DEBUG>
         $<$<CONFIG:Debug>:QI_ENABLE_ASSERTS>
 )
 

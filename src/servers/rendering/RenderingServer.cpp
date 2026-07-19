@@ -28,6 +28,7 @@ RenderingServer::RenderingServer(Window& window, GraphicsAPI graphicsAPI) {
 
 RenderingServer::~RenderingServer() {
     m_imGuiLayer->shutdown();
+    m_renderer->getBackend()->shutdown();
 }
 
 bool RenderingServer::beginFrame() {
@@ -75,9 +76,10 @@ void RenderingServer::render3D(Scene& scene) {
 
     SkyUniformBufferObject skyUbo{};
     skyUbo.invViewProj = glm::inverse(skyProj * viewNoTranslation);
-    //move into m_renderer later
     m_renderer->getBackend()->updateUniformBufferSky(skyUbo);
     m_renderer->getBackend()->drawFullscreenTriangle();
+
+    m_renderer->getBackend()->bindPipeline(VulkanUtils::PipelineType::Pipeline3D);
 
     UniformBufferObject ubo{};
     ubo.view = camera->getViewMatrix();

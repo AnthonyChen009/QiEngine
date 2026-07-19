@@ -10,10 +10,9 @@ public:
     ~VulkanInstance();
     VkInstance getVkInstance();
     void createVkInstance(const std::string& appName);
-
+    void setupDebugMessenger();
 
 private:
-    void setupDebugMessenger();
     std::vector<const char*> getRequiredExtensions();
 
 private:
