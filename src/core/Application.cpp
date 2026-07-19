@@ -5,6 +5,7 @@
 #include "core/io/ResourceLoader.hpp"
 #include "scene/Scene.hpp"
 #include "servers/rendering/RenderingServer.hpp"
+#include "FileSystem.hpp"
 #include "utils/Time.hpp"
 
 
@@ -14,8 +15,12 @@ namespace Qi {
 Application* Application::s_instance = nullptr;
 
 Application::Application(const ApplicationSpecification& specification) : m_specification(specification), m_sceneManager(specification.windowWidth, specification.windowHeight) {
+    FileSystem::initialize();
     QI_CORE_ASSERT(!s_instance, "Application already exists!");
     s_instance = this;
+
+    //test
+    m_specification.workingDirectory = FileSystem::getAssetPath();
 
     if (!m_specification.workingDirectory.empty()) {
         if (std::filesystem::exists(m_specification.workingDirectory)) {
