@@ -22,3 +22,12 @@ assets/imgui.ini
 assets/models/breakfast_room.obj
 assets/models/house.obj
 assets/models/rungholt.obj
+/include/external/glfw-build
+/include/external/glfw-src
+/include/external/glfw-subbuild
+/include/external/glm-build
+/include/external/glm-src
+/include/external/glm-subbuild
+/include/external/spdlog-build
+/include/external/spdlog-src
+/include/external/spdlog-subbuild
