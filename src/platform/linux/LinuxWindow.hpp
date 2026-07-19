@@ -1,6 +1,5 @@
 #pragma once
 
-#define GLFW_INCLUDE_VULKAN
 #include "core/Window.hpp"
 #include <SDL3/SDL.h>
 #include <string>

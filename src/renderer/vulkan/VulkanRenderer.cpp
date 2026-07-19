@@ -136,6 +136,9 @@ void VulkanRenderer::endFrame() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
     VkResult result = vkQueueSubmit(m_vulkanDevice->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]);
+    if (result != VK_SUCCESS) {
+        QI_CORE_ERROR("vkQueueSubmit failed: {}", static_cast<int>(result));
+    }
     QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to submit draw command buffer!");
 
     VkSwapchainKHR swapChains[] = { m_swapChain->getSwapChain() };

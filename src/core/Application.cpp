@@ -6,7 +6,6 @@
 #include "scene/Scene.hpp"
 #include "servers/rendering/RenderingServer.hpp"
 #include "utils/Time.hpp"
-#include <GLFW/glfw3.h>
 
 
 

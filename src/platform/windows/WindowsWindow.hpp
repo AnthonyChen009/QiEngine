@@ -1,8 +1,7 @@
 #pragma once
 
-#define GLFW_INCLUDE_VULKAN
 #include "core/Window.hpp"
-#include <GLFW/glfw3.h>
+#include <SDL3/sdl.h>
 #include <string>
 
 namespace Qi {
@@ -23,13 +22,14 @@ public:
     bool isVSync() const override;
     void waitForValidFramebufferSize() override;
     void* getNativeWindow() const override { return m_window; }
-
+    void setRawEventCallback(const RawEventCallback& callback) override;
+    
 private:
     void init(const WindowProps& props);
     void shutdown();
 
 private:
-    GLFWwindow* m_window = nullptr;
+    SDL_Window* m_window = nullptr;
 
     struct WindowData {
 		std::string title = "Qi Engine";
@@ -42,7 +42,7 @@ private:
 	};
 
     WindowData m_data;
-
+    RawEventCallback m_rawEventCallback;
 };
 
 }
