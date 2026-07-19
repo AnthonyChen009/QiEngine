@@ -55,6 +55,8 @@ void LinuxWindow::shutdown() {
     if (!m_window)
         return;
 
+    m_rawEventCallback = nullptr;
+
     SDL_DestroyWindow(m_window);
     m_window = nullptr;
 
