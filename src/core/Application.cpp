@@ -20,7 +20,7 @@ Application::Application(const ApplicationSpecification& specification) : m_spec
     s_instance = this;
 
     //test
-    m_specification.workingDirectory = FileSystem::getAssetPath();
+    m_specification.workingDirectory = FileSystem::getAssetPath().string();
 
     if (!m_specification.workingDirectory.empty()) {
         if (std::filesystem::exists(m_specification.workingDirectory)) {
