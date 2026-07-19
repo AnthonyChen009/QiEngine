@@ -20,6 +20,7 @@ public:
 
 private:
     Renderer& m_renderer;
+    //for 2d quad
     std::shared_ptr<Mesh> m_quad;
 };
 

@@ -123,7 +123,7 @@ void VulkanRenderer::endFrame() {
     };
 
     VkSemaphore signalSemaphores[] = {
-        m_renderFinishedSemaphores[m_currentFrame]
+        m_renderFinishedSemaphores[m_currentImageIndex]
     };
 
     VkSubmitInfo submitInfo{};
@@ -193,6 +193,7 @@ void VulkanRenderer::drawIndexed(uint32_t count)  {
 
 void VulkanRenderer::createInstance(const std::string& appName) {
     m_instance.createVkInstance(appName);
+    m_instance.setupDebugMessenger();
 }
 
 void VulkanRenderer::createFrameBuffers() {
@@ -282,7 +283,7 @@ void VulkanRenderer::beginCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 
 void VulkanRenderer::createSyncObjects() {
     m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    m_renderFinishedSemaphores.resize(m_swapChain->getImages().size());
     m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
     VkSemaphoreCreateInfo semaphoreInfo{};
@@ -291,13 +292,17 @@ void VulkanRenderer::createSyncObjects() {
     VkFenceCreateInfo fenceInfo{};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         VkResult imageSemaphoreResult = vkCreateSemaphore(m_vulkanDevice->getDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]);
-        VkResult renderSemaphoreResult = vkCreateSemaphore(m_vulkanDevice->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]);
         VkResult fenceResult = vkCreateFence(m_vulkanDevice->getDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]);
-        QI_RENDERER_ASSERT(imageSemaphoreResult == VK_SUCCESS && renderSemaphoreResult == VK_SUCCESS && fenceResult == VK_SUCCESS, "Failed to create synchronization objects!");
+        QI_RENDERER_ASSERT(imageSemaphoreResult == VK_SUCCESS && fenceResult == VK_SUCCESS, "Failed to create synchronization objects!");
     }
 
+    for (size_t i = 0; i < m_renderFinishedSemaphores.size(); i++) {
+        VkResult renderSemaphoreResult = vkCreateSemaphore(m_vulkanDevice->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]);
+        QI_RENDERER_ASSERT(renderSemaphoreResult == VK_SUCCESS, "Failed to create render-finished semaphore!");
+    }
 }
 
 void VulkanRenderer::bindPipeline(VulkanUtils::PipelineType type) {
@@ -599,6 +604,7 @@ void VulkanRenderer::initImGui(Window* window) {
 }
 
 void VulkanRenderer::shutdownImGui() {
+    vkDeviceWaitIdle(m_vulkanDevice->getDevice());
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
@@ -640,14 +646,16 @@ void VulkanRenderer::shutdown() {
     }
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        if (m_renderFinishedSemaphores[i] != VK_NULL_HANDLE)
-            vkDestroySemaphore(m_vulkanDevice->getDevice(), m_renderFinishedSemaphores[i], nullptr);
-
         if (m_imageAvailableSemaphores[i] != VK_NULL_HANDLE)
             vkDestroySemaphore(m_vulkanDevice->getDevice(), m_imageAvailableSemaphores[i], nullptr);
 
         if (m_inFlightFences[i] != VK_NULL_HANDLE)
             vkDestroyFence(m_vulkanDevice->getDevice(), m_inFlightFences[i], nullptr);
+    }
+
+    for (size_t i = 0; i < m_renderFinishedSemaphores.size(); i++) {
+        if (m_renderFinishedSemaphores[i] != VK_NULL_HANDLE)
+            vkDestroySemaphore(m_vulkanDevice->getDevice(), m_renderFinishedSemaphores[i], nullptr);
     }
 
     m_renderFinishedSemaphores.clear();
