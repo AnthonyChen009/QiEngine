@@ -20,23 +20,22 @@ void initialize() {
 
     char buffer[MAX_PATH];
     GetModuleFileNameA(nullptr, buffer, MAX_PATH);
-
     s_executablePath = std::filesystem::path(buffer).parent_path();
-
 #else
     char buffer[4096];
     ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer));
 
     s_executablePath =
         std::filesystem::path(std::string(buffer, len)).parent_path();
-
 #endif
-
-    QI_CORE_INFO("Executable path: {}", s_executablePath.string());
 }
 
 std::filesystem::path getAssetPath() {
     return s_executablePath / "assets";
+}
+
+std::filesystem::path getExecutablePath() {
+    return s_executablePath;
 }
 
 std::filesystem::path resolvePath(const std::filesystem::path& path) {

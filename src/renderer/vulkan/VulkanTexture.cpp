@@ -79,7 +79,6 @@ uint32_t VulkanTexture::getHeight() const {
 }
 
 VulkanTexture::~VulkanTexture() {
-    QI_INFO("Texture being destroyed");
     if (m_sampler) vkDestroySampler(m_device, m_sampler, nullptr);
     if (m_imageView) vkDestroyImageView(m_device, m_imageView, nullptr);
     if (m_image) vkDestroyImage(m_device, m_image, nullptr);

@@ -1,3 +1,4 @@
+#include "core/FileSystem.hpp"
 #include "internal/qipch.hpp"
 #include "core/Log.hpp"
 
@@ -9,11 +10,14 @@ namespace Qi {
 Ref<spdlog::logger> Log::s_coreLogger;
 Ref<spdlog::logger> Log::s_clientLogger;
 
-void Log::init()
-{
+void Log::init() {
+
+    std::filesystem::path logPath = FileSystem::getExecutablePath() / "logs" / "QiEngine.log";
+    std::filesystem::create_directories(logPath.parent_path());
+
 	std::vector<spdlog::sink_ptr> logSinks;
 	logSinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
-	logSinks.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>("QiEngine.log", true));
+	logSinks.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(logPath.string(), true));
 
 	logSinks[0]->set_pattern("%^[%T] %n: %v%$");
 	logSinks[1]->set_pattern("[%T] [%l] %n: %v");
@@ -27,6 +31,7 @@ void Log::init()
 	spdlog::register_logger(s_clientLogger);
 	s_clientLogger->set_level(spdlog::level::trace);
 	s_clientLogger->flush_on(spdlog::level::trace);
+	QI_CORE_INFO("Executable path: {}", logPath.string());
 }
 
 }

@@ -4,6 +4,7 @@
 #include "Application.hpp"
 #include "core/Log.hpp"
 #include "PlatformDetection.hpp"
+#include "FileSystem.hpp"
 
 #ifdef QI_PLATFORM_WINDOWS
 
@@ -24,6 +25,7 @@ int main(int argc, char** argv) {
 extern std::unique_ptr<Qi::Application> Qi::createApplication(ApplicationCommandLineArgs args);
 
 int main(int argc, char** argv) {
+    Qi::FileSystem::initialize();
     Qi::Log::init();
 
     QI_CORE_ERROR("Logging Init Success");

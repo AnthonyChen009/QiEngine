@@ -8,17 +8,13 @@
 #include "FileSystem.hpp"
 #include "utils/Time.hpp"
 
-
-
 namespace Qi {
 
 Application* Application::s_instance = nullptr;
 
 Application::Application(const ApplicationSpecification& specification) : m_specification(specification), m_sceneManager(specification.windowWidth, specification.windowHeight) {
-    FileSystem::initialize();
     QI_CORE_ASSERT(!s_instance, "Application already exists!");
     s_instance = this;
-
     //test
     m_specification.workingDirectory = FileSystem::getAssetPath().string();
 
