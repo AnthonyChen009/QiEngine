@@ -42,6 +42,10 @@ void RenderingServer::render(Scene& scene) {
 
 }
 
+void RenderingServer::waitIdle() {
+    m_renderer->getBackend()->waitIdle();
+}
+
 void RenderingServer::render2D(Scene& scene) {
     m_renderer2D->beginScene();
     auto view = scene.getRegistry().view<TransformComponent, SpriteComponent>();

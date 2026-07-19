@@ -17,6 +17,8 @@ public:
 
     }
 
+    //~ResourceLoader();
+
     template<typename T>
     std::shared_ptr<T> Load(const std::string& path) {
         QI_CORE_ASSERT(sizeof(T) == 0, "Resource type not supported");

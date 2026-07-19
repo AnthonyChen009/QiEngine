@@ -37,4 +37,8 @@ void SceneManager::onEvent(Qi::Event& event) {
     m_currentScene->onEvent(event);
 }
 
+void SceneManager::clear() {
+    m_currentScene.reset();
+}
+
 }

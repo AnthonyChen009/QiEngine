@@ -34,7 +34,11 @@ Application::Application(const ApplicationSpecification& specification) : m_spec
 }
 
 Application::~Application() {
-
+    m_renderingServer->waitIdle();
+    m_sceneManager.clear();
+    m_resourceLoader.reset();
+    m_renderingServer.reset();
+    m_window.reset();
 }
 
 void Application::run() {

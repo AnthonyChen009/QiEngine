@@ -640,6 +640,12 @@ void VulkanRenderer::drawFullscreenTriangle() {
     vkCmdDraw(m_commandBuffers[m_currentFrame], 3, 1, 0, 0);
 }
 
+void VulkanRenderer::waitIdle() {
+    if (m_vulkanDevice->getDevice() != VK_NULL_HANDLE) {
+        vkDeviceWaitIdle(m_vulkanDevice->getDevice());
+    }
+}
+
 void VulkanRenderer::shutdown() {
     if (m_vulkanDevice->getDevice() != VK_NULL_HANDLE) {
         vkDeviceWaitIdle(m_vulkanDevice->getDevice());
