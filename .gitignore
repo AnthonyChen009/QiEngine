@@ -31,3 +31,12 @@ assets/models/rungholt.obj
 /include/external/spdlog-build
 /include/external/spdlog-src
 /include/external/spdlog-subbuild
+include/external/libdwarf-tmp/
+include/external/libdwarf-build/
+include/external/libdwarf-src/
+include/external/zstd-tmp/
+include/external/zstd-src/
+include/external/zstd-build/
+include/external/cpptrace-subbuild/
+include/external/cpptrace-build/
+include/external/cpptrace-src/
