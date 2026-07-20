@@ -22,6 +22,7 @@ public:
 
     VkBuffer getBuffer() const { return m_buffer; }
     VkDeviceMemory getMemory() const { return m_memory; }
+    VkDeviceAddress getDeviceAddress() const ;
 
 private:
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);

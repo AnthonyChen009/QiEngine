@@ -51,6 +51,12 @@ public:
     void waitIdle() override;
     std::shared_ptr<VertexBuffer> createVertexBuffer(const std::vector<Vertex>& vertices) override;
     std::shared_ptr<IndexBuffer> createIndexBuffer(const std::vector<uint32_t>& indices) override;
+    //test
+    bool hasRTSupport() override {return m_vulkanDevice->hasRTSupport();}
+    std::unique_ptr<VulkanAccelerationStructure> createAccelerationStructure(
+        const VertexBuffer& vertexBuffer, uint32_t vertexCount, size_t vertexStride,
+        const IndexBuffer& indexBuffer, uint32_t indexCount,
+        bool allowUpdate = false) override;
 
 private:
     void createInstance(const std::string& appName);

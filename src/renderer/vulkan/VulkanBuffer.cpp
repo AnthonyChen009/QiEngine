@@ -24,6 +24,10 @@ void VulkanBuffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(m_device, m_buffer, &memRequirements);
 
+    VkMemoryAllocateFlagsInfo allocFlagsInfo{};
+    allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+    allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
+
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
@@ -31,6 +35,10 @@ void VulkanBuffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
         memRequirements.memoryTypeBits,
         properties
     );
+
+    if (usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
+        allocInfo.pNext = &allocFlagsInfo;
+    }
 
     result = vkAllocateMemory(m_device, &allocInfo, nullptr, &m_memory);
     QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to allocate buffer memory!");
@@ -48,6 +56,13 @@ void VulkanBuffer::destroy() {
         vkFreeMemory(m_device, m_memory, nullptr);
         m_memory = VK_NULL_HANDLE;
     }
+}
+
+VkDeviceAddress VulkanBuffer::getDeviceAddress() const {
+    VkBufferDeviceAddressInfo addressInfo{};
+    addressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    addressInfo.buffer = m_buffer;
+    return vkGetBufferDeviceAddress(m_device, &addressInfo);
 }
 
 void VulkanBuffer::setData(const void* data, VkDeviceSize size) {

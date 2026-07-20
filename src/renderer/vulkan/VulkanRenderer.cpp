@@ -8,6 +8,7 @@
 #include "renderer/vulkan/VulkanImage.hpp"
 #include "renderer/vulkan/VulkanRenderer.hpp"
 #include <cstdint>
+#include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
 #include "core/FileSystem.hpp"
@@ -45,9 +46,6 @@ void VulkanRenderer::init(Window& window) {
     createCommandPool();
     createDepthResources();
     createFrameBuffers();
-    //m_vertexBuffer = std::make_unique<VulkanVertexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getPresentQueue(), vertices);
-    //m_indexBuffer = std::make_unique<VulkanIndexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getPresentQueue(), indices);
-
 
     createUniformBuffers();
     createDescriptorPool();
@@ -558,11 +556,29 @@ std::shared_ptr<Texture2D> VulkanRenderer::getOrLoadTexture(const std::string& p
 }
 
 std::shared_ptr<VertexBuffer> VulkanRenderer::createVertexBuffer(const std::vector<Vertex>& vertices) {
-    return std::make_shared<VulkanVertexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), vertices);
+    return std::make_shared<VulkanVertexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), vertices, m_vulkanDevice->hasRTSupport());
 }
 
 std::shared_ptr<IndexBuffer> VulkanRenderer::createIndexBuffer(const std::vector<uint32_t>& indices) {
-    return std::make_shared<VulkanIndexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), indices);
+    return std::make_shared<VulkanIndexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), indices, m_vulkanDevice->hasRTSupport());
+}
+
+std::unique_ptr<VulkanAccelerationStructure> VulkanRenderer::createAccelerationStructure(const VertexBuffer& vertexBuffer, uint32_t vertexCount, size_t vertexStride, const IndexBuffer& indexBuffer, uint32_t indexCount, bool allowUpdate) {
+    QI_RENDERER_ASSERT(m_vulkanDevice.has_value(), "VulkanDevice not initialized");
+    QI_RENDERER_ASSERT(vertexCount > 0 && indexCount > 0, "Cannot build acceleration structure with empty geometry");
+    const VulkanVertexBuffer* vkVertexBuffer = dynamic_cast<const VulkanVertexBuffer*>(&vertexBuffer);
+    const VulkanIndexBuffer* vkIndexBuffer = dynamic_cast<const VulkanIndexBuffer*>(&indexBuffer);
+    QI_RENDERER_ASSERT(vkVertexBuffer && vkIndexBuffer, "Expected Vulkan buffer types for acceleration structure creation");
+
+    std::unique_ptr<VulkanAccelerationStructure> blas = std::make_unique<VulkanAccelerationStructure>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
+    blas->buildBLAS(
+        m_commandPool,
+        m_vulkanDevice->getGraphicsQueue(),
+        vkVertexBuffer->getVulkanBuffer(), vertexCount, vertexStride,
+        vkIndexBuffer->getVulkanBuffer(), indexCount,
+        allowUpdate
+    );
+    return blas;
 }
 
 void VulkanRenderer::initImGui(Window* window) {
