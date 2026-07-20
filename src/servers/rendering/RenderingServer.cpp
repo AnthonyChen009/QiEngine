@@ -1,4 +1,5 @@
 #include "RenderingServer.hpp"
+#include "core/Assert.hpp"
 #include "core/Base.hpp"
 #include "core/Log.hpp"
 
@@ -8,6 +9,7 @@
 #include "renderer/Renderer3D.hpp"
 #include "renderer/VertexBuffer.hpp"
 #include "renderer/types/UniformBufferObject.hpp"
+#include "renderer/vulkan/VulkanAccelerationStructure.hpp"
 #include "scene/Components.hpp"
 #include "servers/rendering/ImGuiLayer.hpp"
 #include "servers/rendering/PrimitiveMeshLibrary.hpp"
@@ -123,7 +125,23 @@ std::shared_ptr<Mesh> RenderingServer::createMesh(const std::vector<Vertex>& ver
     }
     std::shared_ptr<VertexBuffer> vertexBuffer = m_renderer->getBackend()->createVertexBuffer(vertices);
     std::shared_ptr<IndexBuffer> indexBuffer = m_renderer->getBackend()->createIndexBuffer(indices);
-    return std::make_shared<Mesh>(vertexBuffer, indexBuffer);
+
+    std::unique_ptr<VulkanAccelerationStructure> blas = nullptr;
+
+    if (m_renderer->getBackend()->hasRTSupport()) {
+        blas = m_renderer->getBackend()->createAccelerationStructure(
+            *vertexBuffer, static_cast<uint32_t>(vertices.size()), sizeof(Vertex),
+            *indexBuffer, static_cast<uint32_t>(indices.size())
+        );
+    }
+
+    std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>(vertexBuffer, indexBuffer);
+
+    if (blas) {
+        mesh->setBLAS(std::move(blas));
+    }
+
+    return mesh;
 }
 
 void RenderingServer::endFrame() {

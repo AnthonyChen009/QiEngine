@@ -16,6 +16,7 @@ target_sources(QiEngine PRIVATE
     vulkan/VulkanSampler.cpp
     vulkan/VulkanTexture.cpp
     vulkan/Texture2D.cpp
+    vulkan/VulkanAccelerationStructure.cpp
     utils/VulkanUtils.cpp
     utils/Primitives.cpp
 

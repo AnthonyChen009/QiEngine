@@ -2,6 +2,8 @@
 #include "core/Window.hpp"
 #include "renderer/types/SkyUbo.hpp"
 #include "renderer/types/UniformBufferObject.hpp"
+#include "renderer/vulkan/VulkanAccelerationStructure.hpp"
+#include "renderer/vulkan/VulkanDevice.hpp"
 #include "renderer/vulkan/VulkanIndexBuffer.hpp"
 #include "renderer/vulkan/VulkanVertexBuffer.hpp"
 #include "types/PushConstants.hpp"
@@ -39,6 +41,12 @@ public:
     virtual void shutdownImGui() = 0;
     virtual void beginImGuiFrame() = 0;
     virtual void renderImGui() = 0;
+
+    virtual bool hasRTSupport() = 0;
+    virtual std::unique_ptr<VulkanAccelerationStructure> createAccelerationStructure(
+        const VertexBuffer& vertexBuffer, uint32_t vertexCount, size_t vertexStride,
+        const IndexBuffer& indexBuffer, uint32_t indexCount,
+        bool allowUpdate = false) = 0;
 };
 
 }
