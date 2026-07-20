@@ -15,7 +15,7 @@ namespace Qi::FileSystem {
 
 static std::filesystem::path s_executablePath;
 
-void initialize() {
+void init() {
 #ifdef _WIN32
 
     char buffer[MAX_PATH];

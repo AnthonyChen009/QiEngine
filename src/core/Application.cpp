@@ -7,6 +7,8 @@
 #include "servers/rendering/RenderingServer.hpp"
 #include "FileSystem.hpp"
 #include "utils/Time.hpp"
+#include <cstdlib>
+#include "platform/CrashHandler.hpp"
 
 namespace Qi {
 
@@ -33,6 +35,8 @@ Application::Application(const ApplicationSpecification& specification) : m_spec
     m_renderingServer = createScope<RenderingServer>(*m_window, m_specification.graphicsAPI);
     m_resourceLoader = createScope<ResourceLoader>(*m_renderingServer);
 }
+
+
 
 Application::~Application() {
     m_renderingServer->waitIdle();

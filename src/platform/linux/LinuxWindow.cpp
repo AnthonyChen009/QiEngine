@@ -50,6 +50,7 @@ void LinuxWindow::init(const WindowProps& props) {
 	setVSync(true);
 
 	SDL_ShowWindow(m_window);
+
 }
 void LinuxWindow::shutdown() {
     if (!m_window)

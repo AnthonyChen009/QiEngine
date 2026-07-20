@@ -109,6 +109,14 @@ message(STATUS "Fetching SDL3...")
 FetchContent_MakeAvailable(SDL3)
 message(STATUS "SDL3 ready")
 
+FetchContent_Declare(
+    cpptrace
+    GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
+    GIT_TAG v1.0.4  # check for latest tag
+)
+message(STATUS "Fetching cpptrace...")
+FetchContent_MakeAvailable(cpptrace)
+message(STATUS "cpptrace ready")
 
 # ImGui
 FetchContent_Declare(
@@ -147,7 +155,7 @@ target_link_libraries(QiEngine
         Vulkan::Vulkan
         spdlog::spdlog
         imgui
-
+        cpptrace::cpptrace
 )
 
 target_link_libraries(QiEngine

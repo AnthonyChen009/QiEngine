@@ -6,7 +6,7 @@
 
 namespace Qi::FileSystem {
 
-void initialize();
+void init();
 
 std::filesystem::path getAssetPath();
 std::filesystem::path resolvePath(const std::filesystem::path& path);

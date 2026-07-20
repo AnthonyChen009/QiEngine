@@ -1,5 +1,6 @@
 target_sources(QiEngine PRIVATE
     graphicsAPI/VulkanPlatform.cpp
+    CrashHandler.cpp
 )
 
 if(WIN32)
