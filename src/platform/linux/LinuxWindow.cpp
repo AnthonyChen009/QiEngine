@@ -116,13 +116,23 @@ void LinuxWindow::onUpdate() {
                 break;
             }
             case SDL_EVENT_MOUSE_MOTION: {
-                MouseMovedEvent moveEvent(event.motion.x, event.motion.y);
+                MouseMovedEvent moveEvent(event.motion.x, event.motion.y, event.motion.xrel, event.motion.yrel);
                 if (m_data.eventCallback) m_data.eventCallback(moveEvent);
                 break;
             }
             case SDL_EVENT_MOUSE_WHEEL: {
                 MouseScrolledEvent scrollEvent(event.wheel.x, event.wheel.y);
                 if (m_data.eventCallback) m_data.eventCallback(scrollEvent);
+                break;
+            }
+            case SDL_EVENT_WINDOW_MINIMIZED: {
+                WindowMinimizedEvent event;
+                if (m_data.eventCallback) m_data.eventCallback(event);
+                break;
+            }
+            case SDL_EVENT_WINDOW_RESTORED: {
+                WindowRestoredEvent event;
+                if (m_data.eventCallback) m_data.eventCallback(event);
                 break;
             }
         }

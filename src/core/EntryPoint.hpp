@@ -12,7 +12,7 @@
 extern std::unique_ptr<Qi::Application> Qi::createApplication(ApplicationCommandLineArgs args);
 
 int main(int argc, char** argv) {
-    Qi::FileSystem::initialize();
+    Qi::FileSystem::init();
     Qi::Log::init();
 
     QI_CORE_ERROR("Logging Init Success");

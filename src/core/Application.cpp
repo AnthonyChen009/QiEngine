@@ -114,6 +114,8 @@ void Application::onEvent(Event& event) {
 	dispatcher.dispatch<WindowCloseEvent>(QI_BIND_EVENT_FN(Application::onWindowClose));
 	dispatcher.dispatch<WindowResizeEvent>(QI_BIND_EVENT_FN(Application::onWindowResize));
 	dispatcher.dispatch<VSyncEvent>(QI_BIND_EVENT_FN(Application::onVSync));
+    dispatcher.dispatch<WindowMinimizedEvent>(QI_BIND_EVENT_FN(Application::onWindowMinimized));
+    dispatcher.dispatch<WindowRestoredEvent>(QI_BIND_EVENT_FN(Application::onWindowRestored));
 
 	m_renderingServer->onEvent(event);
     m_sceneManager.onEvent(event);
@@ -131,7 +133,6 @@ bool Application::onVSync(VSyncEvent& e) {
 }
 
 bool Application::onWindowResize(WindowResizeEvent& e) {
-
     if (e.getWidth() == 0 || e.getHeight() == 0) {
         m_minimized = true;
         return false;
@@ -141,6 +142,16 @@ bool Application::onWindowResize(WindowResizeEvent& e) {
 
     m_renderingServer->onWindowResize(e.getWidth(), e.getHeight());
 
+    return false;
+}
+
+bool Application::onWindowMinimized(WindowMinimizedEvent& e) {
+    m_minimized = true;
+    return false;
+}
+
+bool Application::onWindowRestored(WindowRestoredEvent& e) {
+    m_minimized = false;
     return false;
 }
 

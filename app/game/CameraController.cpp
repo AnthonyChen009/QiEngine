@@ -64,9 +64,7 @@ void CameraController::onEvent(Qi::Event& event) {
 
     if (event.getEventType() == Qi::EventType::MouseMoved) {
         Qi::MouseMovedEvent& e = static_cast<Qi::MouseMovedEvent&>(event);
-        glm::vec2 mousePos = {e.getX(), e.getY()};
-        glm::vec2 delta = (mousePos - m_lastMousePos) * m_sensitivity;
-        m_lastMousePos = mousePos;
+        glm::vec2 delta = glm::vec2(e.getDeltaX(), e.getDeltaY()) * m_sensitivity;
 
         if (Qi::Input::isMouseButtonPressed(Qi::Mouse::ButtonRight)) {
             if (delta.x != 0.0f || delta.y != 0.0f) {

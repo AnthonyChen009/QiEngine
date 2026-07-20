@@ -61,6 +61,8 @@ private:
     bool onWindowClose(WindowCloseEvent& e);
 	bool onWindowResize(WindowResizeEvent& e);
 	bool onVSync(VSyncEvent& e);
+    bool onWindowMinimized(WindowMinimizedEvent& e);
+    bool onWindowRestored(WindowRestoredEvent& e);
 private:
     Scope<Window> m_window;
     InputServer m_inputServer;
