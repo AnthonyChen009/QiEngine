@@ -74,6 +74,23 @@ void RenderingServer::render3D(Scene& scene) {
 
     m_warnedNoCamera = false;
 
+    if (m_renderer->getBackend()->hasRTSupport()) {
+        std::vector<RTInstanceData> instances;
+        auto view = scene.getRegistry().view<Transform3DComponent, MeshComponent>();
+
+        for (auto entity : view) {
+            auto& meshComp = view.get<MeshComponent>(entity);
+            auto& transformComp = view.get<Transform3DComponent>(entity);
+
+            if (!meshComp.mesh || !meshComp.mesh->hasBLAS()) continue;
+
+            RTInstanceData instance;
+            instance.blasAddress = meshComp.mesh->getBLAS()->getDeviceAddress();
+            instance.transform = transformComp.worldTransform;
+            instances.push_back(instance);
+        }
+        m_renderer->getBackend()->updateTLAS(instances);
+    }
     m_renderer3D->beginScene();
 
     glm::mat4 viewNoTranslation = glm::mat4(glm::mat3(camera->getViewMatrix()));
@@ -121,7 +138,7 @@ void RenderingServer::render3D(Scene& scene) {
 std::shared_ptr<Mesh> RenderingServer::createMesh(const std::string& path) {
     return nullptr;
 }
-//use by meshlib only
+//use by meshlib only //2d may not need blas so disable for 2d
 std::shared_ptr<Mesh> RenderingServer::createMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
     if (vertices.empty() || indices.empty()) {
         QI_CORE_ERROR("createMesh called with empty vertex/index data — skipping mesh creation.");
@@ -133,7 +150,7 @@ std::shared_ptr<Mesh> RenderingServer::createMesh(const std::vector<Vertex>& ver
     std::unique_ptr<VulkanAccelerationStructure> blas = nullptr;
 
     if (m_renderer->getBackend()->hasRTSupport()) {
-        blas = m_renderer->getBackend()->createAccelerationStructure(
+        blas = m_renderer->getBackend()->createBLAS(
             *vertexBuffer, static_cast<uint32_t>(vertices.size()), sizeof(Vertex),
             *indexBuffer, static_cast<uint32_t>(indices.size())
         );
