@@ -56,13 +56,24 @@ void VulkanGraphicsPipeline::createDescriptorSetLayout() {
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
 
-    std::array<VkDescriptorBindingFlags, 2> bindingFlags = {
+    VkDescriptorSetLayoutBinding rtOutputBinding{};
+    rtOutputBinding.binding = 2;
+    rtOutputBinding.descriptorCount = 1;
+    rtOutputBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    rtOutputBinding.pImmutableSamplers = nullptr;
+    rtOutputBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding, samplerLayoutBinding };
+    std::vector<VkDescriptorBindingFlags> bindingFlags = {
         0,
-        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-        VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
     };
+
+    if (m_type == VulkanUtils::PipelineType::Pipeline3D) {
+        bindings.push_back(rtOutputBinding);
+        bindingFlags.push_back(0); // fully bound, no partial/update-after-bind needed for this one
+    }
 
     VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{};
     flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;

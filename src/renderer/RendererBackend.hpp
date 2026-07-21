@@ -1,5 +1,6 @@
 #pragma once
 #include "core/Window.hpp"
+#include "renderer/types/RTCameraUBO.hpp"
 #include "renderer/types/RTInstanceData.hpp"
 #include "renderer/types/SkyUbo.hpp"
 #include "renderer/types/UniformBufferObject.hpp"
@@ -29,6 +30,7 @@ public:
     virtual void onVysncToggle(bool isVSync) {};
     virtual void updateUniformBuffer2D() = 0;
     virtual void updateUniformBuffer3D(UniformBufferObject& ubo) = 0;
+    virtual void updateUniformBufferRT(RTCameraUBO& ubo) = 0;
     virtual void updateUniformBufferSky(SkyUniformBufferObject& ubo) = 0;
     virtual void pushConstants2D(const PushConstant& push) = 0;
     virtual void pushConstants3D(const PushConstant& push) = 0;
@@ -49,6 +51,9 @@ public:
         const IndexBuffer& indexBuffer, uint32_t indexCount,
         bool allowUpdate = false) = 0;
     virtual void updateTLAS(const std::vector<RTInstanceData>& instances) = 0;
+    virtual void updateRTDescriptorSet() = 0;
+    virtual void dispatchRayTracing() = 0;
+    virtual void beginRenderPass() = 0;
 };
 
 }

@@ -1,6 +1,7 @@
 #include "SDL3/SDL_video.h"
 #include "core/Base.hpp"
 #include "core/Window.hpp"
+#include "renderer/types/RTCameraUBO.hpp"
 #include "renderer/types/SkyUbo.hpp"
 #include "renderer/utils/VulkanUtils.hpp"
 #include "renderer/vulkan/Texture2D.hpp"
@@ -13,6 +14,7 @@
 #include <vulkan/vulkan.h>
 #include "core/FileSystem.hpp"
 #include "core/Assert.hpp"
+#include "renderer/vulkan/VulkanSampler.hpp"
 #include "types/Vertex.hpp"
 #include <glm/glm.hpp>
 #include "VulkanCommands.hpp"
@@ -45,6 +47,11 @@ void VulkanRenderer::init(Window& window) {
     m_graphicsPipelineSky.emplace(m_vulkanDevice->getDevice(), m_renderPass->getRenderPass(), VulkanUtils::PipelineType::PipelineSky);
     createCommandPool();
     createDepthResources();
+
+    if (m_vulkanDevice->hasRTSupport()) {
+        createRTOutputImage();
+    }
+
     createFrameBuffers();
     createUniformBuffers();
     createDescriptorPool();
@@ -54,6 +61,13 @@ void VulkanRenderer::init(Window& window) {
     createDescriptorSets(VulkanUtils::PipelineType::Pipeline2D);
     createDescriptorSets(VulkanUtils::PipelineType::Pipeline3D);
     createDescriptorSets(VulkanUtils::PipelineType::PipelineSky);
+
+    if (m_vulkanDevice->hasRTSupport()) {
+        m_rtPipeline.emplace(m_vulkanDevice->getDevice());
+        m_rtPipeline->buildSBT(m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue());
+        createRTDescriptorSets();
+    }
+
     //log
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(m_vulkanDevice->getPhysicalDevice(), &properties);
@@ -70,18 +84,10 @@ void VulkanRenderer::init(Window& window) {
 
 bool VulkanRenderer::beginFrame() {
     m_pipelineBound = false;
+    vkWaitForFences(m_vulkanDevice->getDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
-    vkWaitForFences(
-        m_vulkanDevice->getDevice(),
-        1,
-        &m_inFlightFences[m_currentFrame],
-        VK_TRUE,
-        UINT64_MAX
-    );
     uint32_t imageIndex;
-
     VkResult acquireResult = vkAcquireNextImageKHR(m_vulkanDevice->getDevice(), m_swapChain->getSwapChain(), UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
-
     if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
         recreateSwapChain();
         return false;
@@ -89,21 +95,20 @@ bool VulkanRenderer::beginFrame() {
         QI_RENDERER_ASSERT(false, "Failed to acquire swap chain image!");
         return false;
     }
-
     vkResetFences(m_vulkanDevice->getDevice(), 1, &m_inFlightFences[m_currentFrame]);
-
     vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
-
     m_currentImageIndex = imageIndex;
 
-    beginCommandBuffer(m_commandBuffers[m_currentFrame], m_currentImageIndex);
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    VkResult result = vkBeginCommandBuffer(m_commandBuffers[m_currentFrame], &beginInfo);
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to begin recording command buffer!");
 
     return true;
 }
 
 void VulkanRenderer::endFrame() {
     VkCommandBuffer commandBuffer = m_commandBuffers[m_currentFrame];
-
     vkCmdEndRenderPass(commandBuffer);
 
     VkResult endResult = vkEndCommandBuffer(commandBuffer);
@@ -165,6 +170,63 @@ void VulkanRenderer::endFrame() {
         recreateSwapChain();
         m_vsyncTogglePending = false;
     }
+}
+
+void VulkanRenderer::dispatchRayTracing() {
+    if (!m_vulkanDevice->hasRTSupport() || !m_rtDescriptorSetsValid[m_currentFrame]) return;
+
+    VkCommandBuffer commandBuffer = m_commandBuffers[m_currentFrame];
+
+    if (m_rtOutputSampledLastFrame) {
+        VkImageMemoryBarrier resetBarrier{};
+        resetBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        resetBarrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        resetBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+        resetBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        resetBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        resetBarrier.image = m_rtOutputImage;
+        resetBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+        resetBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        resetBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+
+        vkCmdPipelineBarrier(
+            commandBuffer,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+            0, 0, nullptr, 0, nullptr, 1, &resetBarrier
+        );
+    }
+
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipeline->getPipeline());
+    vkCmdBindDescriptorSets(
+        commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+        m_rtPipeline->getPipelineLayout(), 0, 1,
+        &m_rtDescriptorSets[m_currentFrame], 0, nullptr
+    );
+
+    VkExtent2D extent = m_swapChain->getExtent();
+    m_rtPipeline->cmdTraceRays(commandBuffer, extent.width, extent.height);
+
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = m_rtOutputImage;
+    barrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+    barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0, 0, nullptr, 0, nullptr, 1, &barrier
+    );
+
+    updateRTOutputBindingFor3D();
+    m_rtOutputSampledLastFrame = true;
 }
 
 void VulkanRenderer::onWindowResize(uint32_t width, uint32_t height) {
@@ -236,30 +298,21 @@ void VulkanRenderer::createCommandBuffers() {
     QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to allocate command buffers!");
 }
 
-void VulkanRenderer::beginCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0;
-    beginInfo.pInheritanceInfo = nullptr;
-    VkResult result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
-    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to begin recording command buffer!");
+void VulkanRenderer::beginRenderPass() {
+    VkCommandBuffer commandBuffer = m_commandBuffers[m_currentFrame];
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass->getRenderPass();
-    renderPassInfo.framebuffer = m_swapChainFrameBuffers[imageIndex];
+    renderPassInfo.framebuffer = m_swapChainFrameBuffers[m_currentImageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = m_swapChain->getExtent();
-
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {{0.4980f, 0.6745f, 1.0f, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
-
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
-
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    //vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -269,11 +322,19 @@ void VulkanRenderer::beginCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
     VkRect2D scissor{};
     scissor.offset = {0, 0};
     scissor.extent = m_swapChain->getExtent();
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+}
+
+void VulkanRenderer::beginCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0;
+    beginInfo.pInheritanceInfo = nullptr;
+    VkResult result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to begin recording command buffer!");
 }
 
 void VulkanRenderer::createSyncObjects() {
@@ -360,6 +421,12 @@ void VulkanRenderer::cleanupSwapChain() {
         vkFreeMemory(m_vulkanDevice->getDevice(), m_depthImageMemory, nullptr);
         m_depthImageMemory = VK_NULL_HANDLE;
     }
+
+    if (m_vulkanDevice->hasRTSupport()) {
+        cleanupRTOutputImage();
+        m_rtOutputSampledLastFrame = false;
+        std::fill(m_rtDescriptorSetsValid.begin(), m_rtDescriptorSetsValid.end(), false);
+    }
 }
 
 void VulkanRenderer::recreateSwapChain() {
@@ -373,18 +440,24 @@ void VulkanRenderer::recreateSwapChain() {
     m_swapChain->recreate(*m_window);
     createDepthResources();
     createFrameBuffers();
+    if (m_vulkanDevice->hasRTSupport()) {
+        createRTOutputImage();
+    }
 }
 
 void VulkanRenderer::createUniformBuffers() {
     m_uniformBuffers2D.resize(MAX_FRAMES_IN_FLIGHT);
     m_uniformBuffers3D.resize(MAX_FRAMES_IN_FLIGHT);
     m_skyUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    m_rtCameraUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    m_rtDescriptorSetsValid.resize(MAX_FRAMES_IN_FLIGHT, false);
     m_tlas.resize(MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         m_uniformBuffers2D[i] = std::make_unique<VulkanUniformBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), sizeof(UniformBufferObject));
         m_uniformBuffers3D[i] = std::make_unique<VulkanUniformBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), sizeof(UniformBufferObject));
         m_skyUniformBuffers[i] = std::make_unique<VulkanUniformBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), sizeof(SkyUniformBufferObject));
+        m_rtCameraUniformBuffers[i] = std::make_unique<VulkanUniformBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), sizeof(RTCameraUBO));
     }
 }
 
@@ -402,23 +475,31 @@ void VulkanRenderer::updateUniformBuffer3D(UniformBufferObject& ubo) {
     m_uniformBuffers3D[m_currentFrame]->setData(&ubo, sizeof(ubo));
 }
 
+void VulkanRenderer::updateUniformBufferRT(RTCameraUBO& ubo) {
+    m_rtCameraUniformBuffers[m_currentFrame]->setData(&ubo, sizeof(ubo));
+}
+
 void VulkanRenderer::updateUniformBufferSky(SkyUniformBufferObject& ubo) {
     m_skyUniformBuffers[m_currentFrame]->setData(&ubo, sizeof(ubo));
 }
 
 void VulkanRenderer::createDescriptorPool() {
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    std::array<VkDescriptorPoolSize, 4> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 3);
+    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 8); // generous headroom
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 1024 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 3);
+    poolSizes[1].descriptorCount = 1024 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 4); // +1 for RT-output binding on Pipeline3D
+    poolSizes[2].type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+    poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
+    poolSizes[3].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    poolSizes[3].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 3);
+    poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 8); // generous headroom for set count too
 
     VkResult result = vkCreateDescriptorPool(m_vulkanDevice->getDevice(), &poolInfo, nullptr, &m_descriptorPool);
     QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create descriptor pool!");
@@ -478,12 +559,135 @@ void VulkanRenderer::createDescriptorSets(VulkanUtils::PipelineType type) {
     }
 }
 
+void VulkanRenderer::createRTDescriptorSets() {
+    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_rtPipeline->getDescriptorSetLayout());
+
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = m_descriptorPool;
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    allocInfo.pSetLayouts = layouts.data();
+
+    m_rtDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+    VkResult result = vkAllocateDescriptorSets(m_vulkanDevice->getDevice(), &allocInfo, m_rtDescriptorSets.data());
+    QI_CORE_ERROR("vkAllocateDescriptorSets (RT) returned: {}", static_cast<int>(result));
+    QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to allocate RT descriptor sets!");
+}
+
+void VulkanRenderer::updateRTDescriptorSet() {
+    QI_RENDERER_ASSERT(m_tlas[m_currentFrame] != nullptr, "updateRTDescriptorSet called before TLAS was built for this frame");
+
+    VkAccelerationStructureKHR tlasHandle = m_tlas[m_currentFrame]->getHandle();
+
+    VkWriteDescriptorSetAccelerationStructureKHR asWrite{};
+    asWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+    asWrite.accelerationStructureCount = 1;
+    asWrite.pAccelerationStructures = &tlasHandle;
+
+    VkWriteDescriptorSet tlasWrite{};
+    tlasWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    tlasWrite.pNext = &asWrite;
+    tlasWrite.dstSet = m_rtDescriptorSets[m_currentFrame];
+    tlasWrite.dstBinding = 0;
+    tlasWrite.dstArrayElement = 0;
+    tlasWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+    tlasWrite.descriptorCount = 1;
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageView = m_rtOutputImageView;
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+    VkWriteDescriptorSet imageWrite{};
+    imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    imageWrite.dstSet = m_rtDescriptorSets[m_currentFrame];
+    imageWrite.dstBinding = 1;
+    imageWrite.dstArrayElement = 0;
+    imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    imageWrite.descriptorCount = 1;
+    imageWrite.pImageInfo = &imageInfo;
+
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = m_rtCameraUniformBuffers[m_currentFrame]->getBuffer();
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(RTCameraUBO);
+
+    VkWriteDescriptorSet uboWrite{};
+    uboWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    uboWrite.dstSet = m_rtDescriptorSets[m_currentFrame];
+    uboWrite.dstBinding = 2;
+    uboWrite.dstArrayElement = 0;
+    uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboWrite.descriptorCount = 1;
+    uboWrite.pBufferInfo = &bufferInfo;
+
+    std::array<VkWriteDescriptorSet, 3> writes = { tlasWrite, imageWrite, uboWrite };
+    vkUpdateDescriptorSets(m_vulkanDevice->getDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+    m_rtDescriptorSetsValid[m_currentFrame] = true;
+}
 
 void VulkanRenderer::createDepthResources() {
     VkFormat depthFormat = VulkanUtils::findDepthFormat(m_vulkanDevice->getPhysicalDevice());
     VulkanImage::createImage(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_swapChain->getExtent().width, m_swapChain->getExtent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory);
     m_depthImageView = VulkanImage::createImageView(m_vulkanDevice->getDevice(), m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
     VulkanCommands::transitionImageLayout(m_vulkanDevice->getDevice(), m_commandPool, m_vulkanDevice->getPresentQueue(), m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+}
+
+void VulkanRenderer::createRTOutputImage() {
+    VkExtent2D extent = m_swapChain->getExtent();
+    m_rtOutputSampler = VulkanSampler::create(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
+
+    VulkanImage::createImage(
+        m_vulkanDevice->getDevice(),
+        m_vulkanDevice->getPhysicalDevice(),
+        extent.width, extent.height,
+        VK_FORMAT_R8G8B8A8_UNORM,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        m_rtOutputImage,
+        m_rtOutputImageMemory
+    );
+
+    m_rtOutputImageView = VulkanImage::createImageView(m_vulkanDevice->getDevice(), m_rtOutputImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+    VkCommandBuffer cmd = VulkanCommands::beginSingleTimeCommands(m_vulkanDevice->getDevice(), m_commandPool);
+
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = m_rtOutputImage;
+    barrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+        0, 0, nullptr, 0, nullptr, 1, &barrier
+    );
+
+    VulkanCommands::endSingleTimeCommands(m_vulkanDevice->getDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), cmd);
+}
+
+void VulkanRenderer::cleanupRTOutputImage() {
+    if (m_rtOutputImageView != VK_NULL_HANDLE) {
+        vkDestroyImageView(m_vulkanDevice->getDevice(), m_rtOutputImageView, nullptr);
+        m_rtOutputImageView = VK_NULL_HANDLE;
+    }
+    if (m_rtOutputImage != VK_NULL_HANDLE) {
+        vkDestroyImage(m_vulkanDevice->getDevice(), m_rtOutputImage, nullptr);
+        m_rtOutputImage = VK_NULL_HANDLE;
+    }
+    if (m_rtOutputImageMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_vulkanDevice->getDevice(), m_rtOutputImageMemory, nullptr);
+        m_rtOutputImageMemory = VK_NULL_HANDLE;
+    }
+    if (m_rtOutputSampler != VK_NULL_HANDLE) {
+        VulkanSampler::destroy(m_vulkanDevice->getDevice(), m_rtOutputSampler);
+    }
 }
 
 bool VulkanRenderer::hasStencilComponent(VkFormat format) {
@@ -617,6 +821,26 @@ void VulkanRenderer::updateTLAS(const std::vector<RTInstanceData>& instances) {
     // instanceBuffer can be released after the build completes — the AS build reads it
     // synchronously within this function via the single-time command submission, so it's
     // safe to let this unique_ptr go out of scope here.
+}
+
+void VulkanRenderer::updateRTOutputBindingFor3D() {
+    if (!m_vulkanDevice->hasRTSupport()) return;
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // matches the post-trace transition
+    imageInfo.imageView = m_rtOutputImageView;
+    imageInfo.sampler = m_rtOutputSampler; // see note below
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = m_descriptorSets3D[m_currentFrame];
+    write.dstBinding = 2;
+    write.dstArrayElement = 0;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    write.descriptorCount = 1;
+    write.pImageInfo = &imageInfo;
+
+    vkUpdateDescriptorSets(m_vulkanDevice->getDevice(), 1, &write, 0, nullptr);
 }
 
 void VulkanRenderer::initImGui(Window* window) {

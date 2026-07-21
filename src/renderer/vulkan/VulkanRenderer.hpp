@@ -10,6 +10,7 @@
 #include "VulkanVertexBuffer.hpp"
 #include "VulkanIndexBuffer.hpp"
 #include "VulkanUniformBuffer.hpp"
+#include "renderer/types/RTCameraUBO.hpp"
 #include "renderer/types/RTInstanceData.hpp"
 #include "renderer/types/SkyUbo.hpp"
 #include "renderer/types/UniformBufferObject.hpp"
@@ -17,6 +18,7 @@
 #include "renderer/vulkan/VulkanGraphicsPipeline.hpp"
 #include "renderer/vulkan/VulkanInstance.hpp"
 #include "renderer/utils/VulkanUtils.hpp"
+#include "renderer/vulkan/VulkanRTPipeline.hpp"
 #include "renderer/vulkan/VulkanRenderPass.hpp"
 #include "renderer/vulkan/VulkanSurface.hpp"
 #include "renderer/vulkan/VulkanSwapChain.hpp"
@@ -39,6 +41,7 @@ public:
     void drawIndexed(uint32_t count) override;
     void updateUniformBuffer2D() override;
     void updateUniformBuffer3D(UniformBufferObject& ubo) override;
+    void updateUniformBufferRT(RTCameraUBO& ubo) override;
     void updateUniformBufferSky(SkyUniformBufferObject& ubo) override;
     void pushConstants2D(const PushConstant& push) override;
     void pushConstants3D(const PushConstant& push) override;
@@ -62,7 +65,9 @@ public:
     // TODO: currently always does a full rebuild (mode = BUILD_KHR). Rename to rebuildTLAS
     // or add refit support (mode = UPDATE_KHR) once instance-set-changed detection exists.
     void updateTLAS(const std::vector<RTInstanceData>& instances) override;
-
+    void updateRTDescriptorSet() override;
+    void dispatchRayTracing() override;
+    void beginRenderPass() override;
 private:
     void createInstance(const std::string& appName);
     void pickPhysicalDevice();
@@ -74,8 +79,8 @@ private:
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,  Window& window);
-    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
     void createDescriptorSets(VulkanUtils::PipelineType type);
+    void createRTDescriptorSets();
     void createFrameBuffers();
     void createCommandPool();
     void createCommandBuffers();
@@ -88,7 +93,9 @@ private:
     void createDepthResources();
     bool hasStencilComponent(VkFormat format);
     void createImGuiDescriptorPool();
-
+    void createRTOutputImage();
+    void cleanupRTOutputImage();
+    void updateRTOutputBindingFor3D();
 
 private:
     VulkanInstance m_instance;
@@ -103,6 +110,7 @@ private:
 
     std::optional<VulkanGraphicsPipeline> m_graphicsPipeline2D;
     std::optional<VulkanGraphicsPipeline> m_graphicsPipeline3D;
+    std::optional<VulkanRTPipeline> m_rtPipeline;
     std::optional<VulkanGraphicsPipeline> m_graphicsPipelineSky;
 
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
@@ -110,6 +118,11 @@ private:
     VkImage m_depthImage = VK_NULL_HANDLE;
     VkDeviceMemory m_depthImageMemory = VK_NULL_HANDLE;
     VkImageView m_depthImageView = VK_NULL_HANDLE;
+
+    VkSampler m_rtOutputSampler = VK_NULL_HANDLE;
+    VkImage m_rtOutputImage = VK_NULL_HANDLE;
+    VkDeviceMemory m_rtOutputImageMemory = VK_NULL_HANDLE;
+    VkImageView m_rtOutputImageView = VK_NULL_HANDLE;
 
     std::vector<VkFramebuffer> m_swapChainFrameBuffers;
 
@@ -121,10 +134,12 @@ private:
     std::vector<std::unique_ptr<VulkanUniformBuffer>> m_uniformBuffers2D;
     std::vector<std::unique_ptr<VulkanUniformBuffer>> m_uniformBuffers3D;
     std::vector<std::unique_ptr<VulkanUniformBuffer>> m_skyUniformBuffers;
+    std::vector<std::unique_ptr<VulkanUniformBuffer>> m_rtCameraUniformBuffers;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> m_descriptorSets2D;
     std::vector<VkDescriptorSet> m_descriptorSets3D;
+    std::vector<VkDescriptorSet> m_rtDescriptorSets;
     std::vector<VkDescriptorSet> m_descriptorSetsSky;
 
     std::vector<VkCommandBuffer> m_commandBuffers;
@@ -145,6 +160,9 @@ private:
     VkDescriptorPool m_imguiDescriptorPool = VK_NULL_HANDLE;
     bool m_pendingVSync = false;
     bool m_vsyncTogglePending = false;
+    std::vector<bool> m_rtDescriptorSetsValid;
+    bool m_rtOutputSampledLastFrame = false;
+
 };
 
 }

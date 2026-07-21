@@ -8,6 +8,7 @@
 #include "renderer/Renderer2D.hpp"
 #include "renderer/Renderer3D.hpp"
 #include "renderer/VertexBuffer.hpp"
+#include "renderer/types/RTCameraUBO.hpp"
 #include "renderer/types/UniformBufferObject.hpp"
 #include "renderer/vulkan/VulkanAccelerationStructure.hpp"
 #include "scene/Components.hpp"
@@ -71,43 +72,48 @@ void RenderingServer::render3D(Scene& scene) {
         }
         return;
     }
-
     m_warnedNoCamera = false;
 
+    UniformBufferObject ubo{};
+    ubo.view = camera->getViewMatrix();
+    ubo.proj = camera->getProjectionMatrix();
+    ubo.proj[1][1] *= -1;
+
+    // --- RT: gather instances, rebuild TLAS, update camera UBO + descriptor set ---
     if (m_renderer->getBackend()->hasRTSupport()) {
         std::vector<RTInstanceData> instances;
-        auto view = scene.getRegistry().view<Transform3DComponent, MeshComponent>();
-
-        for (auto entity : view) {
-            auto& meshComp = view.get<MeshComponent>(entity);
-            auto& transformComp = view.get<Transform3DComponent>(entity);
-
+        auto rtView = scene.getRegistry().view<Transform3DComponent, MeshComponent>();
+        for (auto entity : rtView) {
+            auto& meshComp = rtView.get<MeshComponent>(entity);
+            auto& transformComp = rtView.get<Transform3DComponent>(entity);
             if (!meshComp.mesh || !meshComp.mesh->hasBLAS()) continue;
-
             RTInstanceData instance;
             instance.blasAddress = meshComp.mesh->getBLAS()->getDeviceAddress();
             instance.transform = transformComp.worldTransform;
             instances.push_back(instance);
         }
         m_renderer->getBackend()->updateTLAS(instances);
+
+        RTCameraUBO rtUBO{};
+        rtUBO.invView = glm::inverse(ubo.view);
+        rtUBO.invProj = glm::inverse(ubo.proj);
+        m_renderer->getBackend()->updateUniformBufferRT(rtUBO);
+        m_renderer->getBackend()->updateRTDescriptorSet();
+        m_renderer->getBackend()->dispatchRayTracing();
     }
+
+    m_renderer->getBackend()->beginRenderPass();
+
     m_renderer3D->beginScene();
 
     glm::mat4 viewNoTranslation = glm::mat4(glm::mat3(camera->getViewMatrix()));
     glm::mat4 skyProj = camera->getProjectionMatrix();
     skyProj[1][1] *= -1;
-
     SkyUniformBufferObject skyUbo{};
     skyUbo.invViewProj = glm::inverse(skyProj * viewNoTranslation);
     m_renderer->getBackend()->updateUniformBufferSky(skyUbo);
     m_renderer->getBackend()->drawFullscreenTriangle();
-
     m_renderer->getBackend()->bindPipeline(VulkanUtils::PipelineType::Pipeline3D);
-
-    UniformBufferObject ubo{};
-    ubo.view = camera->getViewMatrix();
-    ubo.proj = camera->getProjectionMatrix();
-    ubo.proj[1][1] *= -1;
 
     auto lightView = scene.getRegistry().view<DirectionalLightComponent>();
     if (!lightView.empty()) {
@@ -116,7 +122,6 @@ void RenderingServer::render3D(Scene& scene) {
         ubo.lightColor = light.color;
         ubo.lightIntensity = light.intensity;
     }
-
     ubo.ambientColor = glm::vec3(1.0f);
     ubo.ambientIntensity = 0.1f;
 
@@ -130,10 +135,8 @@ void RenderingServer::render3D(Scene& scene) {
             m_renderer3D->drawMesh(meshComponent.mesh, transform.worldTransform, meshComponent.albedoTexture);
         }
     }
-
     m_renderer3D->endScene();
 }
-
 
 std::shared_ptr<Mesh> RenderingServer::createMesh(const std::string& path) {
     return nullptr;
