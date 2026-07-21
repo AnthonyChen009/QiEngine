@@ -55,3 +55,11 @@ else()
         $<TARGET_FILE_DIR:QiApp>/assets
     )
 endif()
+
+if(WIN32)
+    add_custom_command(TARGET QiApp POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:SDL3::SDL3>
+        $<TARGET_FILE_DIR:QiApp>
+    )
+endif()
