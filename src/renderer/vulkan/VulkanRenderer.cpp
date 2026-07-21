@@ -45,7 +45,6 @@ void VulkanRenderer::init(Window& window) {
     createCommandPool();
     createDepthResources();
     createFrameBuffers();
-
     createUniformBuffers();
     createDescriptorPool();
     createImGuiDescriptorPool();
@@ -57,8 +56,6 @@ void VulkanRenderer::init(Window& window) {
     //log
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(m_vulkanDevice->getPhysicalDevice(), &properties);
-
-
 
     QI_CORE_INFO("Vulkan initialized");
     QI_CORE_INFO("GPU: {0}", properties.deviceName);
@@ -378,6 +375,7 @@ void VulkanRenderer::createUniformBuffers() {
     m_uniformBuffers2D.resize(MAX_FRAMES_IN_FLIGHT);
     m_uniformBuffers3D.resize(MAX_FRAMES_IN_FLIGHT);
     m_skyUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    m_tlas.resize(MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         m_uniformBuffers2D[i] = std::make_unique<VulkanUniformBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), sizeof(UniformBufferObject));
@@ -559,7 +557,7 @@ std::shared_ptr<IndexBuffer> VulkanRenderer::createIndexBuffer(const std::vector
     return std::make_shared<VulkanIndexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), indices, m_vulkanDevice->hasRTSupport());
 }
 
-std::unique_ptr<VulkanAccelerationStructure> VulkanRenderer::createAccelerationStructure(const VertexBuffer& vertexBuffer, uint32_t vertexCount, size_t vertexStride, const IndexBuffer& indexBuffer, uint32_t indexCount, bool allowUpdate) {
+std::unique_ptr<VulkanAccelerationStructure> VulkanRenderer::createBLAS(const VertexBuffer& vertexBuffer, uint32_t vertexCount, size_t vertexStride, const IndexBuffer& indexBuffer, uint32_t indexCount, bool allowUpdate) {
     QI_RENDERER_ASSERT(m_vulkanDevice.has_value(), "VulkanDevice not initialized");
     QI_RENDERER_ASSERT(vertexCount > 0 && indexCount > 0, "Cannot build acceleration structure with empty geometry");
     const VulkanVertexBuffer* vkVertexBuffer = dynamic_cast<const VulkanVertexBuffer*>(&vertexBuffer);
@@ -575,6 +573,46 @@ std::unique_ptr<VulkanAccelerationStructure> VulkanRenderer::createAccelerationS
         allowUpdate
     );
     return blas;
+}
+
+void VulkanRenderer::updateTLAS(const std::vector<RTInstanceData>& instances) {
+    if (instances.empty()) return;
+
+    std::vector<VkAccelerationStructureInstanceKHR> vkInstances(instances.size());
+    for (size_t i = 0; i < instances.size(); ++i) {
+        const auto& inst = instances[i];
+        VkTransformMatrixKHR transform{};
+        // glm is column-major; VkTransformMatrixKHR wants row-major, top 3 rows
+        for (int row = 0; row < 3; ++row)
+            for (int col = 0; col < 4; ++col)
+                transform.matrix[row][col] = inst.transform[col][row];
+
+        vkInstances[i].transform = transform;
+        vkInstances[i].instanceCustomIndex = inst.instanceCustomIndex;
+        vkInstances[i].mask = inst.mask;
+        vkInstances[i].instanceShaderBindingTableRecordOffset = 0;
+        vkInstances[i].flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+        vkInstances[i].accelerationStructureReference = inst.blasAddress;
+    }
+
+    VkDeviceSize bufferSize = sizeof(VkAccelerationStructureInstanceKHR) * vkInstances.size();
+
+    VulkanBuffer stagingBuffer(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
+    stagingBuffer.create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    stagingBuffer.setData(vkInstances.data(), bufferSize);
+
+    auto instanceBuffer = std::make_unique<VulkanBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
+    instanceBuffer->create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    VulkanCommands::copyBuffer(m_vulkanDevice->getDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), stagingBuffer.getBuffer(), instanceBuffer->getBuffer(), bufferSize);
+
+    m_tlas[m_currentFrame] = std::make_unique<VulkanAccelerationStructure>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
+
+    m_tlas[m_currentFrame]->buildTLAS(m_commandPool, m_vulkanDevice->getGraphicsQueue(), *instanceBuffer, static_cast<uint32_t>(vkInstances.size()), false);
+
+    // instanceBuffer can be released after the build completes — the AS build reads it
+    // synchronously within this function via the single-time command submission, so it's
+    // safe to let this unique_ptr go out of scope here.
 }
 
 void VulkanRenderer::initImGui(Window* window) {

@@ -1,5 +1,6 @@
 #pragma once
 #include "core/Window.hpp"
+#include "renderer/types/RTInstanceData.hpp"
 #include "renderer/types/SkyUbo.hpp"
 #include "renderer/types/UniformBufferObject.hpp"
 #include "renderer/vulkan/VulkanAccelerationStructure.hpp"
@@ -43,10 +44,11 @@ public:
     virtual void renderImGui() = 0;
 
     virtual bool hasRTSupport() = 0;
-    virtual std::unique_ptr<VulkanAccelerationStructure> createAccelerationStructure(
+    virtual std::unique_ptr<VulkanAccelerationStructure> createBLAS(
         const VertexBuffer& vertexBuffer, uint32_t vertexCount, size_t vertexStride,
         const IndexBuffer& indexBuffer, uint32_t indexCount,
         bool allowUpdate = false) = 0;
+    virtual void updateTLAS(const std::vector<RTInstanceData>& instances) = 0;
 };
 
 }

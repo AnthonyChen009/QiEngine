@@ -13,6 +13,7 @@ public:
     // allowUpdate: reserved for future skeletal refit support. Defaults to false
     // for static meshes today; skinned meshes will pass true once skinning exists.
     void buildBLAS(VkCommandPool commandPool, VkQueue queue, const VulkanBuffer& vertexBuffer, uint32_t vertexCount, VkDeviceSize vertexStride, const VulkanBuffer& indexBuffer, uint32_t indexCount, bool allowUpdate = false);
+    void buildTLAS(VkCommandPool commandPool, VkQueue queue, const VulkanBuffer& instanceBuffer, uint32_t instanceCount, bool allowUpdate = false);
 
     VkAccelerationStructureKHR getHandle() const { return m_accelerationStructure; }
     VkDeviceAddress getDeviceAddress() const { return m_deviceAddress; }

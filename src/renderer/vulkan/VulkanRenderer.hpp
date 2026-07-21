@@ -10,6 +10,7 @@
 #include "VulkanVertexBuffer.hpp"
 #include "VulkanIndexBuffer.hpp"
 #include "VulkanUniformBuffer.hpp"
+#include "renderer/types/RTInstanceData.hpp"
 #include "renderer/types/SkyUbo.hpp"
 #include "renderer/types/UniformBufferObject.hpp"
 #include "renderer/vulkan/VulkanDevice.hpp"
@@ -51,12 +52,16 @@ public:
 
     std::shared_ptr<VertexBuffer> createVertexBuffer(const std::vector<Vertex>& vertices) override;
     std::shared_ptr<IndexBuffer> createIndexBuffer(const std::vector<uint32_t>& indices) override;
-    //test
+
     bool hasRTSupport() override {return m_vulkanDevice->hasRTSupport();}
-    std::unique_ptr<VulkanAccelerationStructure> createAccelerationStructure(
+    std::unique_ptr<VulkanAccelerationStructure> createBLAS(
         const VertexBuffer& vertexBuffer, uint32_t vertexCount, size_t vertexStride,
         const IndexBuffer& indexBuffer, uint32_t indexCount,
         bool allowUpdate = false) override;
+
+    // TODO: currently always does a full rebuild (mode = BUILD_KHR). Rename to rebuildTLAS
+    // or add refit support (mode = UPDATE_KHR) once instance-set-changed detection exists.
+    void updateTLAS(const std::vector<RTInstanceData>& instances) override;
 
 private:
     void createInstance(const std::string& appName);
@@ -126,6 +131,7 @@ private:
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
     std::vector<VkFence> m_inFlightFences;
+    std::vector<std::unique_ptr<VulkanAccelerationStructure>> m_tlas;
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
     uint32_t m_currentImageIndex = 0;
