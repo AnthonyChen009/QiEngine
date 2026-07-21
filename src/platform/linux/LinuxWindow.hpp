@@ -22,7 +22,7 @@ public:
     bool isVSync() const override;
     void waitForValidFramebufferSize() override;
     void* getNativeWindow() const override { return m_window; }
-    void setRawEventCallback(const RawEventCallback& callback);
+    void setRawEventCallback(const RawEventCallback& callback) override;
 
 private:
     void init(const WindowProps& props);
