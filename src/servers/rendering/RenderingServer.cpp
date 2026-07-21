@@ -111,8 +111,8 @@ void RenderingServer::render3D(Scene& scene) {
     skyProj[1][1] *= -1;
     SkyUniformBufferObject skyUbo{};
     skyUbo.invViewProj = glm::inverse(skyProj * viewNoTranslation);
-    m_renderer->getBackend()->updateUniformBufferSky(skyUbo);
-    m_renderer->getBackend()->drawFullscreenTriangle();
+    //m_renderer->getBackend()->updateUniformBufferSky(skyUbo);
+    //m_renderer->getBackend()->drawFullscreenTriangle();
     m_renderer->getBackend()->bindPipeline(VulkanUtils::PipelineType::Pipeline3D);
 
     auto lightView = scene.getRegistry().view<DirectionalLightComponent>();

@@ -226,6 +226,7 @@ void VulkanRenderer::dispatchRayTracing() {
     );
 
     updateRTOutputBindingFor3D();
+    //updateRTOutputBindingForSky();
     m_rtOutputSampledLastFrame = true;
 }
 
@@ -399,6 +400,23 @@ void VulkanRenderer::bindBuffers(const VertexBuffer& vertexBuffer, const IndexBu
 
     m_boundVertexBuffer = &vertexBuffer;
     m_boundIndexBuffer = &indexBuffer;
+}
+
+void VulkanRenderer::updateRTOutputBindingForSky() {
+    if (!m_vulkanDevice->hasRTSupport()) return;
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = m_rtOutputImageView;
+    imageInfo.sampler = m_rtOutputSampler;
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = m_descriptorSetsSky[m_currentFrame];
+    write.dstBinding = 1;
+    write.dstArrayElement = 0;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    write.descriptorCount = 1;
+    write.pImageInfo = &imageInfo;
+    vkUpdateDescriptorSets(m_vulkanDevice->getDevice(), 1, &write, 0, nullptr);
 }
 
 void VulkanRenderer::cleanupSwapChain() {

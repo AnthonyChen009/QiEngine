@@ -96,7 +96,8 @@ private:
     void createRTOutputImage();
     void cleanupRTOutputImage();
     void updateRTOutputBindingFor3D();
-
+    //test
+    void updateRTOutputBindingForSky();
 private:
     VulkanInstance m_instance;
 

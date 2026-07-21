@@ -14,14 +14,18 @@ target_compile_definitions(QiApp PRIVATE
 
 find_program(GLSLC glslc REQUIRED)
 
+
+
 file(GLOB_RECURSE SHADER_SOURCES
     ${CMAKE_SOURCE_DIR}/assets/shaders/*.vert
     ${CMAKE_SOURCE_DIR}/assets/shaders/*.frag
-    ${CMAKE_SOURCE_DIR}/assets/shaders/*.rgen
-    ${CMAKE_SOURCE_DIR}/assets/shaders/*.rmiss
-    ${CMAKE_SOURCE_DIR}/assets/shaders/*.rchit
-    ${CMAKE_SOURCE_DIR}/assets/shaders/*.rahit
-    ${CMAKE_SOURCE_DIR}/assets/shaders/*.rint
+    ${CMAKE_SOURCE_DIR}/assets/shaders/RT/*.vert
+    ${CMAKE_SOURCE_DIR}/assets/shaders/RT/*.frag
+    ${CMAKE_SOURCE_DIR}/assets/shaders/RT/*.rgen
+    ${CMAKE_SOURCE_DIR}/assets/shaders/RT/*.rmiss
+    ${CMAKE_SOURCE_DIR}/assets/shaders/RT/*.rchit
+    ${CMAKE_SOURCE_DIR}/assets/shaders/RT/*.rahit
+    ${CMAKE_SOURCE_DIR}/assets/shaders/RT/*.rint
 )
 
 set(SHADER_OUTPUTS "")
@@ -42,19 +46,19 @@ endforeach()
 add_custom_target(CompileShaders ALL DEPENDS ${SHADER_OUTPUTS})
 add_dependencies(QiApp CompileShaders)
 
-if(MSVC)
-    add_custom_command(TARGET QiApp POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/assets
-        $<TARGET_FILE_DIR:QiApp>/assets
-    )
-else()
-    add_custom_command(TARGET QiApp POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/assets
-        $<TARGET_FILE_DIR:QiApp>/assets
-    )
-endif()
+file(GLOB_RECURSE ASSET_FILES ${CMAKE_SOURCE_DIR}/assets/*)
+
+add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/asset_copy_stamp
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/assets
+    $<TARGET_FILE_DIR:QiApp>/assets
+    COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/asset_copy_stamp
+    DEPENDS ${ASSET_FILES} ${SHADER_OUTPUTS}
+    COMMENT "Copying assets"
+)
+add_custom_target(CopyAssets ALL DEPENDS ${CMAKE_BINARY_DIR}/asset_copy_stamp)
+add_dependencies(QiApp CopyAssets)
 
 if(WIN32)
     add_custom_command(TARGET QiApp POST_BUILD

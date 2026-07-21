@@ -7,7 +7,6 @@
 #include <vulkan/vulkan_core.h>
 
 namespace Qi {
-
 VulkanGraphicsPipeline::VulkanGraphicsPipeline(VkDevice device, VkRenderPass renderPass, VulkanUtils::PipelineType type) : m_device(device), m_type(type) {
     createDescriptorSetLayout();
     createGraphicsPipeline(renderPass);

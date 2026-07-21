@@ -12,7 +12,6 @@ public:
         setScene(std::make_unique<SandboxScene>());
     }
     ~Sandbox() {
-
     }
 };
 
