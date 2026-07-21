@@ -34,6 +34,22 @@ public:
     QI_EVENT_CLASS_CATEGORY(eventCategoryApplication)
 };
 
+class WindowMinimizedEvent : public Event {
+public:
+    WindowMinimizedEvent() = default;
+    std::string toString() const override { return "WindowMinimizedEvent"; }
+    QI_EVENT_CLASS_TYPE(WindowMinimized)
+    QI_EVENT_CLASS_CATEGORY(eventCategoryApplication)
+};
+
+class WindowRestoredEvent : public Event {
+public:
+    WindowRestoredEvent() = default;
+    std::string toString() const override { return "WindowRestoredEvent"; }
+    QI_EVENT_CLASS_TYPE(WindowRestored)
+    QI_EVENT_CLASS_CATEGORY(eventCategoryApplication)
+};
+
 class AppTickEvent : public Event {
 public:
     AppTickEvent() = default;

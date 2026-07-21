@@ -4,12 +4,12 @@
 #include "events/ApplicationEvent.hpp"
 #include "core/Log.hpp"
 #include "core/Assert.hpp"
-#include <GLFW/glfw3.h>
 #include "events/KeyEvent.hpp"
+#include <SDL3/SDL_vulkan.h>
 #include "events/MouseEvent.hpp"
 
 namespace Qi {
-static uint8_t s_glfwWindowCount = 0;
+static uint8_t s_windowCount = 0;
 
 static void glfwErrorCallback(int error, const char* description) {
 	QI_CORE_ERROR("GLFW Error ({0}): {1}", error, description);
@@ -30,116 +30,117 @@ void WindowsWindow::init(const WindowProps& props) {
 	m_data.graphicsAPI = props.graphicsAPI;
 
 	QI_CORE_INFO("Creating window {0} ({1}, {2})", props.title, props.width, props.height);
-	//glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND);
 
-	if (s_glfwWindowCount == 0) {
-		int success = glfwInit();
-		QI_CORE_ASSERT(success, "Could not initialize GLFW!");
-		glfwSetErrorCallback(glfwErrorCallback);
+
+	if (s_windowCount == 0) {
+        if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
+            QI_CORE_ERROR("SDL_Init failed: {}", SDL_GetError());
+            QI_CORE_ASSERT(false, "SDL_Init failed!");
+        }
 	}
 
-	if (!glfwVulkanSupported()) {
-        QI_CORE_ASSERT("Vulkan is not supported on this system.");
-    }
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	if (!SDL_Vulkan_LoadLibrary(nullptr)) {
+        QI_CORE_ERROR("Could not load Vulkan: {}", SDL_GetError());
+        QI_CORE_ASSERT(false, "Vulkan is not supported on this system.");
+	}
 
     m_data.graphicsAPI = GraphicsAPI::Vulkan;
 
-	m_window = glfwCreateWindow((int)props.width, (int)props.height, m_data.title.c_str(), nullptr, nullptr);
-	QI_CORE_ASSERT(m_window, "Failed to create GLFW window!");
-	s_glfwWindowCount++;
+	m_window = SDL_CreateWindow(m_data.title.c_str(), props.width, props.height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+	QI_CORE_ASSERT(m_window, "Failed to create SDL window!");
+	s_windowCount++;
 
-    if (m_data.graphicsAPI == GraphicsAPI::OpenGL) {
-        glfwMakeContextCurrent(m_window);
-    }
-
-	glfwSetWindowUserPointer(m_window, &m_data);
+	SDL_SetPointerProperty(SDL_GetWindowProperties(m_window), "user_data", &m_data);
 	setVSync(true);
 
-	glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow* window, int width, int height) {
-        WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-        data.width = width;
-        data.height = height;
-
-        WindowResizeEvent event(width, height);
-        if (data.eventCallback)
-            data.eventCallback(event);
-    });
-
-	glfwSetWindowCloseCallback(m_window, [](GLFWwindow* window) {
-		WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-		WindowCloseEvent event;
-		if (data.eventCallback)
-            data.eventCallback(event);
-	});
-
-	glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
-        WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-        switch (action) {
-            case GLFW_PRESS: {
-                KeyPressedEvent event(key, false);
-                if (data.eventCallback) data.eventCallback(event);
-                break;
-            }
-            case GLFW_RELEASE: {
-                KeyReleasedEvent event(key);
-                if (data.eventCallback) data.eventCallback(event);
-                break;
-            }
-            case GLFW_REPEAT: {
-                KeyPressedEvent event(key, true);
-                if (data.eventCallback) data.eventCallback(event);
-                break;
-            }
-        }
-    });
-
-    glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int mods) {
-        WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-        switch (action) {
-            case GLFW_PRESS: {
-                MouseButtonPressedEvent event(button);
-                if (data.eventCallback) data.eventCallback(event);
-                break;
-            }
-            case GLFW_RELEASE: {
-                MouseButtonReleasedEvent event(button);
-                if (data.eventCallback) data.eventCallback(event);
-                break;
-            }
-        }
-    });
-
-    glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double xPos, double yPos) {
-        WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-        MouseMovedEvent event((float)xPos, (float)yPos);
-        if (data.eventCallback) data.eventCallback(event);
-    });
-
-    glfwSetScrollCallback(m_window, [](GLFWwindow* window, double xOffset, double yOffset) {
-        WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-        MouseScrolledEvent event((float)xOffset, (float)yOffset);
-        if (data.eventCallback) data.eventCallback(event);
-    });
-
-	glfwShowWindow(m_window);
+	SDL_ShowWindow(m_window);
 }
+
 void WindowsWindow::shutdown() {
     if (!m_window)
         return;
 
-    glfwDestroyWindow(m_window);
+    m_rawEventCallback = nullptr;
+
+    SDL_DestroyWindow(m_window);
     m_window = nullptr;
 
-    --s_glfwWindowCount;
+    --s_windowCount;
 
-    if (s_glfwWindowCount == 0)
-        glfwTerminate();
+    if (s_windowCount == 0)
+        SDL_Quit();
+}
+
+void WindowsWindow::setRawEventCallback(const RawEventCallback& callback) {
+    m_rawEventCallback = callback;
 }
 
 void WindowsWindow::onUpdate() {
-    glfwPollEvents();
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        if (m_rawEventCallback)
+            m_rawEventCallback(&event);
+
+        switch (event.type) {
+            case SDL_EVENT_WINDOW_RESIZED: {
+                m_data.width = event.window.data1;
+                m_data.height = event.window.data2;
+                WindowResizeEvent resizeEvent(event.window.data1, event.window.data2);
+                if (m_data.eventCallback) m_data.eventCallback(resizeEvent);
+                break;
+            }
+            case SDL_EVENT_WINDOW_CLOSE_REQUESTED: {
+                WindowCloseEvent closeEvent;
+                if (m_data.eventCallback) m_data.eventCallback(closeEvent);
+                break;
+            }
+            case SDL_EVENT_KEY_DOWN: {
+                if (event.key.repeat) {
+                    KeyPressedEvent keyEvent(event.key.key, true);
+                    if (m_data.eventCallback) m_data.eventCallback(keyEvent);
+                } else {
+                    KeyPressedEvent keyEvent(event.key.key, false);
+                    if (m_data.eventCallback) m_data.eventCallback(keyEvent);
+                }
+                break;
+            }
+            case SDL_EVENT_KEY_UP: {
+                KeyReleasedEvent keyEvent(event.key.key);
+                if (m_data.eventCallback) m_data.eventCallback(keyEvent);
+                break;
+            }
+            case SDL_EVENT_MOUSE_BUTTON_DOWN: {
+                MouseButtonPressedEvent btnEvent(event.button.button);
+                if (m_data.eventCallback) m_data.eventCallback(btnEvent);
+                break;
+            }
+            case SDL_EVENT_MOUSE_BUTTON_UP: {
+                MouseButtonReleasedEvent btnEvent(event.button.button);
+                if (m_data.eventCallback) m_data.eventCallback(btnEvent);
+                break;
+            }
+            case SDL_EVENT_MOUSE_MOTION: {
+                MouseMovedEvent moveEvent(event.motion.x, event.motion.y, event.motion.xrel, event.motion.yrel);
+                if (m_data.eventCallback) m_data.eventCallback(moveEvent);
+                break;
+            }
+            case SDL_EVENT_MOUSE_WHEEL: {
+                MouseScrolledEvent scrollEvent(event.wheel.x, event.wheel.y);
+                if (m_data.eventCallback) m_data.eventCallback(scrollEvent);
+                break;
+            }
+            case SDL_EVENT_WINDOW_MINIMIZED: {
+                WindowMinimizedEvent event;
+                if (m_data.eventCallback) m_data.eventCallback(event);
+                break;
+            }
+            case SDL_EVENT_WINDOW_RESTORED: {
+                WindowRestoredEvent event;
+                if (m_data.eventCallback) m_data.eventCallback(event);
+                break;
+            }
+        }
+    }
 }
 
 void WindowsWindow::setVSync(bool enabled)
@@ -147,17 +148,17 @@ void WindowsWindow::setVSync(bool enabled)
 	m_data.VSync = enabled;
 
 	if (m_data.graphicsAPI == GraphicsAPI::OpenGL) {
-        glfwSwapInterval(enabled ? 1 : 0);
+
     }
 }
 
 void WindowsWindow::waitForValidFramebufferSize() {
-    int width = 0;
-    int height = 0;
+    int width = 0, height = 0;
+    SDL_GetWindowSizeInPixels(m_window, &width, &height);
 
     while (width == 0 || height == 0) {
-        glfwGetFramebufferSize(m_window, &width, &height);
-        glfwWaitEvents();
+        SDL_WaitEvent(nullptr);
+        SDL_GetWindowSizeInPixels(m_window, &width, &height);
     }
 
     m_data.width = width;

@@ -30,6 +30,7 @@ public:
     std::shared_ptr<Mesh> createMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
     ImGuiLayer& getImGuiLayer();
     PrimitiveMeshLibrary& getPrimitives();
+    void waitIdle();
 private:
     void render2D(Scene& scene);
     void render3D(Scene& scene);

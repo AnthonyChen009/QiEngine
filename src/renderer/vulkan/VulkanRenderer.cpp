@@ -1,3 +1,4 @@
+#include "SDL3/SDL_video.h"
 #include "core/Base.hpp"
 #include "core/Window.hpp"
 #include "renderer/types/SkyUbo.hpp"
@@ -17,7 +18,7 @@
 #include "renderer/types/UniformBufferObject.hpp"
 #include "types/PushConstants.hpp"
 #include "imgui.h"
-#include "imgui_impl_glfw.h"
+#include "imgui_impl_sdl3.h"
 #include "imgui_impl_vulkan.h"
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -135,6 +136,9 @@ void VulkanRenderer::endFrame() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
     VkResult result = vkQueueSubmit(m_vulkanDevice->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]);
+    if (result != VK_SUCCESS) {
+        QI_CORE_ERROR("vkQueueSubmit failed: {}", static_cast<int>(result));
+    }
     QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to submit draw command buffer!");
 
     VkSwapchainKHR swapChains[] = { m_swapChain->getSwapChain() };
@@ -568,11 +572,11 @@ void VulkanRenderer::initImGui(Window* window) {
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+    //io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
 
     ImGui::StyleColorsDark();
-    GLFWwindow* nativeWindow = static_cast<GLFWwindow*>(window->getNativeWindow());
+    SDL_Window* nativeWindow = static_cast<SDL_Window*>(window->getNativeWindow());
 
     ImGui_ImplVulkan_InitInfo initInfo{};
     initInfo.ApiVersion = VK_API_VERSION_1_4;
@@ -592,21 +596,23 @@ void VulkanRenderer::initImGui(Window* window) {
 
     initInfo.CheckVkResultFn = checkVkResult;
 
-    ImGui_ImplGlfw_InitForVulkan(nativeWindow, true);
+    ImGui_ImplSDL3_InitForVulkan(nativeWindow);
     ImGui_ImplVulkan_Init(&initInfo);
-
+    window->setRawEventCallback([](void* e) {
+        ImGui_ImplSDL3_ProcessEvent(static_cast<SDL_Event*>(e));
+    });
 }
 
 void VulkanRenderer::shutdownImGui() {
     vkDeviceWaitIdle(m_vulkanDevice->getDevice());
     ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 }
 
 void VulkanRenderer::beginImGuiFrame() {
     ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 }
 
@@ -632,6 +638,12 @@ void VulkanRenderer::createImGuiDescriptorPool() {
 
 void VulkanRenderer::drawFullscreenTriangle() {
     vkCmdDraw(m_commandBuffers[m_currentFrame], 3, 1, 0, 0);
+}
+
+void VulkanRenderer::waitIdle() {
+    if (m_vulkanDevice->getDevice() != VK_NULL_HANDLE) {
+        vkDeviceWaitIdle(m_vulkanDevice->getDevice());
+    }
 }
 
 void VulkanRenderer::shutdown() {

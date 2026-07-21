@@ -1,144 +1,132 @@
 #pragma once
+#include <SDL3/SDL_keycode.h>
 #include "cstdint"
 
 namespace Qi {
-using KeyCode = uint16_t;
+using KeyCode = uint32_t;
 
 namespace Key {
-	enum : KeyCode {
+    enum : KeyCode {
+   		Space               = SDLK_SPACE,
+   		Apostrophe          = SDLK_APOSTROPHE,
+   		Comma               = SDLK_COMMA,
+   		Minus               = SDLK_MINUS,
+   		Period              = SDLK_PERIOD,
+   		Slash               = SDLK_SLASH,
+   		D0                  = SDLK_0,
+   		D1                  = SDLK_1,
+   		D2                  = SDLK_2,
+   		D3                  = SDLK_3,
+   		D4                  = SDLK_4,
+   		D5                  = SDLK_5,
+   		D6                  = SDLK_6,
+   		D7                  = SDLK_7,
+   		D8                  = SDLK_8,
+   		D9                  = SDLK_9,
+   		Semicolon           = SDLK_SEMICOLON,
+   		Equal               = SDLK_EQUALS,
+   		A                   = SDLK_A,
+   		B                   = SDLK_B,
+   		C                   = SDLK_C,
+   		D                   = SDLK_D,
+   		E                   = SDLK_E,
+   		F                   = SDLK_F,
+   		G                   = SDLK_G,
+   		H                   = SDLK_H,
+   		I                   = SDLK_I,
+   		J                   = SDLK_J,
+   		K                   = SDLK_K,
+   		L                   = SDLK_L,
+   		M                   = SDLK_M,
+   		N                   = SDLK_N,
+   		O                   = SDLK_O,
+   		P                   = SDLK_P,
+   		Q                   = SDLK_Q,
+   		R                   = SDLK_R,
+   		S                   = SDLK_S,
+   		T                   = SDLK_T,
+   		U                   = SDLK_U,
+   		V                   = SDLK_V,
+   		W                   = SDLK_W,
+   		X                   = SDLK_X,
+   		Y                   = SDLK_Y,
+   		Z                   = SDLK_Z,
+   		LeftBracket         = SDLK_LEFTBRACKET,
+   		Backslash           = SDLK_BACKSLASH,
+   		RightBracket        = SDLK_RIGHTBRACKET,
+   		GraveAccent         = SDLK_GRAVE,
 
-		Space               = 32,
-		Apostrophe          = 39, /* ' */
-		Comma               = 44, /* , */
-		Minus               = 45, /* - */
-		Period              = 46, /* . */
-		Slash               = 47, /* / */
+   		Escape              = SDLK_ESCAPE,
+   		Enter               = SDLK_RETURN,
+   		Tab                 = SDLK_TAB,
+   		Backspace           = SDLK_BACKSPACE,
+   		Insert              = SDLK_INSERT,
+   		Delete              = SDLK_DELETE,
+   		Right               = SDLK_RIGHT,
+   		Left                = SDLK_LEFT,
+   		Down                = SDLK_DOWN,
+   		Up                  = SDLK_UP,
+   		PageUp              = SDLK_PAGEUP,
+   		PageDown            = SDLK_PAGEDOWN,
+   		Home                = SDLK_HOME,
+   		End                 = SDLK_END,
+   		CapsLock            = SDLK_CAPSLOCK,
+   		ScrollLock          = SDLK_SCROLLLOCK,
+   		NumLock             = SDLK_NUMLOCKCLEAR,
+   		PrintScreen         = SDLK_PRINTSCREEN,
+   		Pause               = SDLK_PAUSE,
+   		F1                  = SDLK_F1,
+   		F2                  = SDLK_F2,
+   		F3                  = SDLK_F3,
+   		F4                  = SDLK_F4,
+   		F5                  = SDLK_F5,
+   		F6                  = SDLK_F6,
+   		F7                  = SDLK_F7,
+   		F8                  = SDLK_F8,
+   		F9                  = SDLK_F9,
+   		F10                 = SDLK_F10,
+   		F11                 = SDLK_F11,
+   		F12                 = SDLK_F12,
+   		F13                 = SDLK_F13,
+   		F14                 = SDLK_F14,
+   		F15                 = SDLK_F15,
+   		F16                 = SDLK_F16,
+   		F17                 = SDLK_F17,
+   		F18                 = SDLK_F18,
+   		F19                 = SDLK_F19,
+   		F20                 = SDLK_F20,
+   		F21                 = SDLK_F21,
+   		F22                 = SDLK_F22,
+   		F23                 = SDLK_F23,
+   		F24                 = SDLK_F24,
 
-		D0                  = 48, /* 0 */
-		D1                  = 49, /* 1 */
-		D2                  = 50, /* 2 */
-		D3                  = 51, /* 3 */
-		D4                  = 52, /* 4 */
-		D5                  = 53, /* 5 */
-		D6                  = 54, /* 6 */
-		D7                  = 55, /* 7 */
-		D8                  = 56, /* 8 */
-		D9                  = 57, /* 9 */
+   		KP0                 = SDLK_KP_0,
+   		KP1                 = SDLK_KP_1,
+   		KP2                 = SDLK_KP_2,
+   		KP3                 = SDLK_KP_3,
+   		KP4                 = SDLK_KP_4,
+   		KP5                 = SDLK_KP_5,
+   		KP6                 = SDLK_KP_6,
+   		KP7                 = SDLK_KP_7,
+   		KP8                 = SDLK_KP_8,
+   		KP9                 = SDLK_KP_9,
+   		KPDecimal           = SDLK_KP_DECIMAL,
+   		KPDivide            = SDLK_KP_DIVIDE,
+   		KPMultiply          = SDLK_KP_MULTIPLY,
+   		KPSubtract          = SDLK_KP_MINUS,
+   		KPAdd               = SDLK_KP_PLUS,
+   		KPEnter             = SDLK_KP_ENTER,
+   		KPEqual             = SDLK_KP_EQUALS,
 
-		Semicolon           = 59, /* ; */
-		Equal               = 61, /* = */
-
-		A                   = 65,
-		B                   = 66,
-		C                   = 67,
-		D                   = 68,
-		E                   = 69,
-		F                   = 70,
-		G                   = 71,
-		H                   = 72,
-		I                   = 73,
-		J                   = 74,
-		K                   = 75,
-		L                   = 76,
-		M                   = 77,
-		N                   = 78,
-		O                   = 79,
-		P                   = 80,
-		Q                   = 81,
-		R                   = 82,
-		S                   = 83,
-		T                   = 84,
-		U                   = 85,
-		V                   = 86,
-		W                   = 87,
-		X                   = 88,
-		Y                   = 89,
-		Z                   = 90,
-
-		LeftBracket         = 91,  /* [ */
-		Backslash           = 92,  /* \ */
-		RightBracket        = 93,  /* ] */
-		GraveAccent         = 96,  /* ` */
-
-		World1              = 161, /* non-US #1 */
-		World2              = 162, /* non-US #2 */
-
-		/* Function keys */
-		Escape              = 256,
-		Enter               = 257,
-		Tab                 = 258,
-		Backspace           = 259,
-		Insert              = 260,
-		Delete              = 261,
-		Right               = 262,
-		Left                = 263,
-		Down                = 264,
-		Up                  = 265,
-		PageUp              = 266,
-		PageDown            = 267,
-		Home                = 268,
-		End                 = 269,
-		CapsLock            = 280,
-		ScrollLock          = 281,
-		NumLock             = 282,
-		PrintScreen         = 283,
-		Pause               = 284,
-		F1                  = 290,
-		F2                  = 291,
-		F3                  = 292,
-		F4                  = 293,
-		F5                  = 294,
-		F6                  = 295,
-		F7                  = 296,
-		F8                  = 297,
-		F9                  = 298,
-		F10                 = 299,
-		F11                 = 300,
-		F12                 = 301,
-		F13                 = 302,
-		F14                 = 303,
-		F15                 = 304,
-		F16                 = 305,
-		F17                 = 306,
-		F18                 = 307,
-		F19                 = 308,
-		F20                 = 309,
-		F21                 = 310,
-		F22                 = 311,
-		F23                 = 312,
-		F24                 = 313,
-		F25                 = 314,
-
-		/* Keypad */
-		KP0                 = 320,
-		KP1                 = 321,
-		KP2                 = 322,
-		KP3                 = 323,
-		KP4                 = 324,
-		KP5                 = 325,
-		KP6                 = 326,
-		KP7                 = 327,
-		KP8                 = 328,
-		KP9                 = 329,
-		KPDecimal           = 330,
-		KPDivide            = 331,
-		KPMultiply          = 332,
-		KPSubtract          = 333,
-		KPAdd               = 334,
-		KPEnter             = 335,
-		KPEqual             = 336,
-
-		LeftShift           = 340,
-		LeftControl         = 341,
-		LeftAlt             = 342,
-		LeftSuper           = 343,
-		RightShift          = 344,
-		RightControl        = 345,
-		RightAlt            = 346,
-		RightSuper          = 347,
-		Menu                = 348
-	};
+   		LeftShift           = SDLK_LSHIFT,
+   		LeftControl         = SDLK_LCTRL,
+   		LeftAlt             = SDLK_LALT,
+   		LeftSuper           = SDLK_LGUI,
+   		RightShift          = SDLK_RSHIFT,
+   		RightControl        = SDLK_RCTRL,
+   		RightAlt            = SDLK_RALT,
+   		RightSuper          = SDLK_RGUI,
+   		Menu                = SDLK_MENU
+   	};
 }
-
-
 }

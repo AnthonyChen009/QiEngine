@@ -9,7 +9,7 @@ namespace Qi {
 class MouseMovedEvent : public Event
 {
 public:
-	MouseMovedEvent(const float x, const float y) : m_mouseX(x), m_mouseY(y) {}
+	MouseMovedEvent(float x, float y, float deltaX, float deltaY) : m_mouseX(x), m_mouseY(y), m_deltaX(deltaX), m_deltaY(deltaY) {}
 
 	float getX() const {
 	    return m_mouseX;
@@ -18,6 +18,9 @@ public:
 	float getY() const {
 	    return m_mouseY;
 	}
+
+	float getDeltaX() const { return m_deltaX; }
+    float getDeltaY() const { return m_deltaY; }
 
 	std::string toString() const override {
 		std::stringstream ss;
@@ -28,7 +31,7 @@ public:
 	QI_EVENT_CLASS_TYPE(MouseMoved)
 	QI_EVENT_CLASS_CATEGORY(eventCategoryMouse | eventCategoryInput)
 private:
-	float m_mouseX, m_mouseY;
+	float m_mouseX, m_mouseY, m_deltaX, m_deltaY;
 };
 
 class MouseScrolledEvent : public Event {

@@ -5,10 +5,10 @@
 #include "core/io/ResourceLoader.hpp"
 #include "scene/Scene.hpp"
 #include "servers/rendering/RenderingServer.hpp"
+#include "FileSystem.hpp"
 #include "utils/Time.hpp"
-#include <GLFW/glfw3.h>
-
-
+#include <cstdlib>
+#include "platform/CrashHandler.hpp"
 
 namespace Qi {
 
@@ -17,6 +17,8 @@ Application* Application::s_instance = nullptr;
 Application::Application(const ApplicationSpecification& specification) : m_specification(specification), m_sceneManager(specification.windowWidth, specification.windowHeight) {
     QI_CORE_ASSERT(!s_instance, "Application already exists!");
     s_instance = this;
+    //test
+    m_specification.workingDirectory = FileSystem::getAssetPath().string();
 
     if (!m_specification.workingDirectory.empty()) {
         if (std::filesystem::exists(m_specification.workingDirectory)) {
@@ -34,8 +36,14 @@ Application::Application(const ApplicationSpecification& specification) : m_spec
     m_resourceLoader = createScope<ResourceLoader>(*m_renderingServer);
 }
 
-Application::~Application() {
 
+
+Application::~Application() {
+    m_renderingServer->waitIdle();
+    m_sceneManager.clear();
+    m_resourceLoader.reset();
+    m_renderingServer.reset();
+    m_window.reset();
 }
 
 void Application::run() {
@@ -106,6 +114,8 @@ void Application::onEvent(Event& event) {
 	dispatcher.dispatch<WindowCloseEvent>(QI_BIND_EVENT_FN(Application::onWindowClose));
 	dispatcher.dispatch<WindowResizeEvent>(QI_BIND_EVENT_FN(Application::onWindowResize));
 	dispatcher.dispatch<VSyncEvent>(QI_BIND_EVENT_FN(Application::onVSync));
+    dispatcher.dispatch<WindowMinimizedEvent>(QI_BIND_EVENT_FN(Application::onWindowMinimized));
+    dispatcher.dispatch<WindowRestoredEvent>(QI_BIND_EVENT_FN(Application::onWindowRestored));
 
 	m_renderingServer->onEvent(event);
     m_sceneManager.onEvent(event);
@@ -123,7 +133,6 @@ bool Application::onVSync(VSyncEvent& e) {
 }
 
 bool Application::onWindowResize(WindowResizeEvent& e) {
-
     if (e.getWidth() == 0 || e.getHeight() == 0) {
         m_minimized = true;
         return false;
@@ -133,6 +142,16 @@ bool Application::onWindowResize(WindowResizeEvent& e) {
 
     m_renderingServer->onWindowResize(e.getWidth(), e.getHeight());
 
+    return false;
+}
+
+bool Application::onWindowMinimized(WindowMinimizedEvent& e) {
+    m_minimized = true;
+    return false;
+}
+
+bool Application::onWindowRestored(WindowRestoredEvent& e) {
+    m_minimized = false;
     return false;
 }
 

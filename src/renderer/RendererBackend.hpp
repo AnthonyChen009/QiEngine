@@ -33,7 +33,7 @@ public:
     virtual std::shared_ptr<Texture2D> getOrLoadTexture(const std::string& path) = 0;
     virtual std::shared_ptr<VertexBuffer> createVertexBuffer(const std::vector<Vertex>& vertices) = 0;
     virtual std::shared_ptr<IndexBuffer> createIndexBuffer(const std::vector<uint32_t>& indices) = 0;
-
+    virtual void waitIdle() = 0;
 
     virtual void initImGui(Window* window) = 0;
     virtual void shutdownImGui() = 0;

@@ -7,7 +7,7 @@ class SceneManager {
 public:
     SceneManager(uint32_t width, uint32_t height);
     void setScene(std::unique_ptr<Scene> scene);
-
+    void clear();
 	void onUpdate(Qi::Timestep ts);
 	void onEvent(Qi::Event& event);
 	void onPhysicsUpdate(Qi::Timestep ts);

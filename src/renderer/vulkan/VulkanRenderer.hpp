@@ -48,7 +48,7 @@ public:
     void bindPipeline(VulkanUtils::PipelineType type) override;
     void bindBuffers(const VertexBuffer& vertexBuffer, const IndexBuffer& indexBuffer) override;
     void drawFullscreenTriangle() override;
-
+    void waitIdle() override;
     std::shared_ptr<VertexBuffer> createVertexBuffer(const std::vector<Vertex>& vertices) override;
     std::shared_ptr<IndexBuffer> createIndexBuffer(const std::vector<uint32_t>& indices) override;
 

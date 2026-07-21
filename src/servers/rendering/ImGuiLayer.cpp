@@ -3,8 +3,6 @@
 #include "core/Application.hpp"
 #include "core/Log.hpp"
 #include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_vulkan.h"
 #include "core/api/Input.hpp"
 
 namespace Qi {
@@ -47,7 +45,7 @@ void ImGuiLayer::render(Timestep ts) {
 
     static float sampleTimer = 0.0f;
 
-    float fps = 1.0f / ts.getSeconds();
+    float fps = ImGui::GetIO().Framerate;
     float ft = ts.getSeconds() * 1000.0f;
 
     sampleTimer += ts.getSeconds();
