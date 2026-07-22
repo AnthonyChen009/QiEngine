@@ -137,6 +137,7 @@ private:
     std::vector<std::unique_ptr<VulkanUniformBuffer>> m_uniformBuffers3D;
     std::vector<std::unique_ptr<VulkanUniformBuffer>> m_skyUniformBuffers;
     std::vector<std::unique_ptr<VulkanUniformBuffer>> m_rtCameraUniformBuffers;
+    std::vector<std::unique_ptr<VulkanBuffer>> m_instanceAddressesBuffers;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> m_descriptorSets2D;

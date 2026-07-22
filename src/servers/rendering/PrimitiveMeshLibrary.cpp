@@ -33,8 +33,11 @@ std::shared_ptr<Mesh> PrimitiveMeshLibrary::getCapsule() {
 }
 
 std::shared_ptr<Mesh> PrimitiveMeshLibrary::getCylinder() {
-    QI_CORE_ASSERT(false, "PrimitiveMeshLibrary::getCylinder is not implemented yet");
-    return nullptr;
+    if (!m_cylinder) {
+        auto [vertices, indices] = Primitives::generateCylinder(0.5f, 1.0f, 32, 8);
+        m_cylinder = m_renderingServer.createMesh(vertices, indices);
+    }
+    return m_capsule;
 }
 
 std::shared_ptr<Mesh> PrimitiveMeshLibrary::getCone() {
@@ -43,8 +46,11 @@ std::shared_ptr<Mesh> PrimitiveMeshLibrary::getCone() {
 }
 
 std::shared_ptr<Mesh> PrimitiveMeshLibrary::getPlane() {
-    QI_CORE_ASSERT(false, "PrimitiveMeshLibrary::getPlane is not implemented yet");
-    return nullptr;
+    if (!m_plane) {
+        auto [vertices, indices] = Primitives::generatePlane(1.0f, 0.1f);
+        m_cylinder = m_renderingServer.createMesh(vertices, indices);
+    }
+    return m_capsule;
 }
 
 std::shared_ptr<Mesh> PrimitiveMeshLibrary::getQuad() {

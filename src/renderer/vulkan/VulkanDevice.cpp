@@ -100,6 +100,11 @@ void VulkanDevice::createLogicalDevice() {
 
     VkPhysicalDeviceFeatures deviceFeatures{};
     deviceFeatures.samplerAnisotropy = VK_TRUE;
+    deviceFeatures.shaderInt64 = VK_TRUE;
+
+    VkPhysicalDeviceScalarBlockLayoutFeatures scalarBlockLayoutFeatures{};
+    scalarBlockLayoutFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES;
+    scalarBlockLayoutFeatures.scalarBlockLayout = VK_TRUE;
 
     VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
     indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
@@ -125,7 +130,8 @@ void VulkanDevice::createLogicalDevice() {
         enabledExtensions.insert(enabledExtensions.end(), m_rtDeviceExtensions.begin(), m_rtDeviceExtensions.end());
         bdaFeatures.pNext = &asFeatures;
         asFeatures.pNext = &rtPipelineFeatures;
-        indexingFeatures.pNext = &bdaFeatures;
+        scalarBlockLayoutFeatures.pNext = &bdaFeatures;
+        indexingFeatures.pNext = &scalarBlockLayoutFeatures;
     }
 
     VkDeviceCreateInfo createInfo{};

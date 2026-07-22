@@ -3,6 +3,7 @@ layout(push_constant) uniform PushConstants {
     mat4 transform;
     vec4 color;
     uint textureIndex;
+    uint useRT;
 } push;
 layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 view;
@@ -36,11 +37,10 @@ void main() {
     vec3 lighting = ambient + diffuse;
     vec3 rasterColor = albedo.rgb * lighting;
 
-    // RT debug pass-through: screen-space UV into the RT output buffer.
-    // TODO: replace with real hybrid blending (shadow/AO term) later.
-    vec2 screenUV = gl_FragCoord.xy / vec2(textureSize(rtOutput, 0));
-    vec3 rtColor = texture(rtOutput, screenUV).rgb;
-
-    outColor = vec4(rtColor, albedo.a);
-    // outColor = vec4(rasterColor, albedo.a); // <- previous rasterized-only output, kept for reference
+    if (push.useRT == 1) {
+        vec2 screenUV = gl_FragCoord.xy / vec2(textureSize(rtOutput, 0));
+        outColor = vec4(texture(rtOutput, screenUV).rgb, albedo.a);
+    } else {
+        outColor = vec4(rasterColor, albedo.a);
+    }
 }

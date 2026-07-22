@@ -3,11 +3,11 @@
 
 struct HitPayload {
     float hitDistance;
-    vec3 worldPosition;
     vec3 worldNormal;
     int objectIndex;
     int hitType;
     bool isBackface;
+    int bounceCount;
 };
 
 layout(location = 0) rayPayloadInEXT HitPayload payload;

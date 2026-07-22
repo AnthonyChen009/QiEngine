@@ -23,12 +23,13 @@ void Renderer3D::drawCube() {
     // m_renderer.getBackend()->drawIndexed(6);
 }
 
-void Renderer3D::drawMesh(const std::shared_ptr<Mesh>& mesh, const glm::mat4& transform, Texture2D* texture) {
+void Renderer3D::drawMesh(const std::shared_ptr<Mesh>& mesh, const glm::mat4& transform, Texture2D* texture, bool useRT) {
     m_renderer.getBackend()->bindBuffers(mesh->getVertexBuffer(), mesh->getIndexBuffer());
     PushConstant push{};
     push.transform = transform;
     push.color = glm::vec4(1.0);
     push.textureIndex = texture ? texture->getIndex() : -1;
+    push.useRt = useRT;
 
     m_renderer.getBackend()->pushConstants3D(push);
     m_renderer.getBackend()->drawIndexed(1);

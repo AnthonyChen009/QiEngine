@@ -68,7 +68,13 @@ void VulkanRTPipeline::createDescriptorSetLayout() {
     cameraUboBinding.descriptorCount = 1;
     cameraUboBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
 
-    std::array<VkDescriptorSetLayoutBinding, 3> bindings = { tlasBinding, outputImageBinding, cameraUboBinding };
+    VkDescriptorSetLayoutBinding instanceAddressesBinding{};
+    instanceAddressesBinding.binding = 3;
+    instanceAddressesBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    instanceAddressesBinding.descriptorCount = 1;
+    instanceAddressesBinding.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+
+    std::array<VkDescriptorSetLayoutBinding, 4> bindings = { tlasBinding, outputImageBinding, cameraUboBinding, instanceAddressesBinding};
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -229,7 +235,7 @@ void VulkanRTPipeline::createRTPipeline() {
     pipelineInfo.pStages = stages.data();
     pipelineInfo.groupCount = static_cast<uint32_t>(m_shaderGroups.size());
     pipelineInfo.pGroups = m_shaderGroups.data();
-    pipelineInfo.maxPipelineRayRecursionDepth = 1; // no secondary rays yet
+    pipelineInfo.maxPipelineRayRecursionDepth = 4; // no secondary rays yet
     pipelineInfo.layout = m_pipelineLayout;
 
     VkResult result = pfnCreateRTPipelines(

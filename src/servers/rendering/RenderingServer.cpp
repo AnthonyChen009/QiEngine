@@ -81,9 +81,11 @@ void RenderingServer::render3D(Scene& scene) {
     ubo.proj[1][1] *= -1;
 
     // --- RT: gather instances, rebuild TLAS, update camera UBO + descriptor set ---
-    if (m_renderer->getBackend()->hasRTSupport() && m_useRT) {
+    if (m_renderer->getBackend()->hasRTSupport() && m_useHybridRT) {
         std::vector<RTInstanceData> instances;
         auto rtView = scene.getRegistry().view<Transform3DComponent, MeshComponent>();
+
+        uint32_t instanceIndex = 0;
         for (auto entity : rtView) {
             auto& meshComp = rtView.get<MeshComponent>(entity);
             auto& transformComp = rtView.get<Transform3DComponent>(entity);
@@ -91,27 +93,32 @@ void RenderingServer::render3D(Scene& scene) {
             RTInstanceData instance;
             instance.blasAddress = meshComp.mesh->getBLAS()->getDeviceAddress();
             instance.transform = transformComp.worldTransform;
+            instance.instanceCustomIndex = instanceIndex++;
+            instance.vertexBufferAddress = static_cast<const VulkanVertexBuffer&>(meshComp.mesh->getVertexBuffer()).getVulkanBuffer().getDeviceAddress();
+            instance.indexBufferAddress = static_cast<const VulkanIndexBuffer&>(meshComp.mesh->getIndexBuffer()).getVulkanBuffer().getDeviceAddress();
             instances.push_back(instance);
         }
         m_renderer->getBackend()->updateTLAS(instances);
 
-        RTCameraUBO rtUBO{};
-        rtUBO.invView = glm::inverse(ubo.view);
-        rtUBO.invProj = glm::inverse(ubo.proj);
-        m_renderer->getBackend()->updateUniformBufferRT(rtUBO);
-        m_renderer->getBackend()->updateRTDescriptorSet();
-        m_renderer->getBackend()->dispatchRayTracing();
+        if (!instances.empty()) {
+            RTCameraUBO rtUBO{};
+            rtUBO.invView = glm::inverse(ubo.view);
+            rtUBO.invProj = glm::inverse(ubo.proj);
+            m_renderer->getBackend()->updateUniformBufferRT(rtUBO);
+            m_renderer->getBackend()->updateRTDescriptorSet();
+            m_renderer->getBackend()->dispatchRayTracing();
+        }
     }
 
     m_renderer->getBackend()->beginRenderPass();
 
     m_renderer3D->beginScene();
-    if (m_renderer->getBackend()->hasRTSupport() && m_useRT) {
+    if (m_renderer->getBackend()->hasRTSupport() && m_useFullRT) {
         m_renderer->getBackend()->bindPipeline(VulkanUtils::PipelineType::PipelineRTDisplay);
         m_renderer->getBackend()->drawFullscreenTriangle();
     }
 
-    if (!m_renderer->getBackend()->hasRTSupport() || !m_useRT) {
+    if (!m_renderer->getBackend()->hasRTSupport() || !m_useFullRT) {
         glm::mat4 viewNoTranslation = glm::mat4(glm::mat3(camera->getViewMatrix()));
         glm::mat4 skyProj = camera->getProjectionMatrix();
         skyProj[1][1] *= -1;
@@ -138,7 +145,7 @@ void RenderingServer::render3D(Scene& scene) {
             Transform3DComponent& transform = view.get<Transform3DComponent>(entity);
             MeshComponent& meshComponent = view.get<MeshComponent>(entity);
             if (meshComponent.mesh) {
-                m_renderer3D->drawMesh(meshComponent.mesh, transform.worldTransform, meshComponent.albedoTexture);
+                m_renderer3D->drawMesh(meshComponent.mesh, transform.worldTransform, meshComponent.albedoTexture, m_useHybridRT);
             }
         }
     }
@@ -189,10 +196,16 @@ void RenderingServer::onWindowResize(unsigned int x, unsigned int y) {
 }
 
 void RenderingServer::onEvent(Event& event) {
+    if (event.getEventType() == EventType::UseFullRt) {
+        UseFullRtEvent& e = static_cast<UseFullRtEvent&>(event);
+        m_useFullRT = e.isEnabled();
+    }
+
     if (event.getEventType() == EventType::UseRt) {
         UseRtEvent& e = static_cast<UseRtEvent&>(event);
-        m_useRT = e.isEnabled();
+        m_useHybridRT = e.isEnabled();
     }
+
 
     m_imGuiLayer->onEvent(event);
 }

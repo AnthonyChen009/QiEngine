@@ -485,6 +485,7 @@ void VulkanRenderer::createUniformBuffers() {
     m_skyUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     m_rtCameraUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     m_rtDescriptorSetsValid.resize(MAX_FRAMES_IN_FLIGHT, false);
+    m_instanceAddressesBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     m_tlas.resize(MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -518,7 +519,7 @@ void VulkanRenderer::updateUniformBufferSky(SkyUniformBufferObject& ubo) {
 }
 
 void VulkanRenderer::createDescriptorPool() {
-    std::array<VkDescriptorPoolSize, 4> poolSizes{};
+    std::array<VkDescriptorPoolSize, 5> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 8); // generous headroom
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -527,6 +528,8 @@ void VulkanRenderer::createDescriptorPool() {
     poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
     poolSizes[3].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     poolSizes[3].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
+    poolSizes[4].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    poolSizes[4].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -610,6 +613,7 @@ void VulkanRenderer::createRTDescriptorSets() {
 
 void VulkanRenderer::updateRTDescriptorSet() {
     QI_RENDERER_ASSERT(m_tlas[m_currentFrame] != nullptr, "updateRTDescriptorSet called before TLAS was built for this frame");
+    QI_RENDERER_ASSERT(m_instanceAddressesBuffers[m_currentFrame] != nullptr, "updateRTDescriptorSet called before instance addresses buffer was built for this frame");
 
     VkAccelerationStructureKHR tlasHandle = m_tlas[m_currentFrame]->getHandle();
 
@@ -654,7 +658,21 @@ void VulkanRenderer::updateRTDescriptorSet() {
     uboWrite.descriptorCount = 1;
     uboWrite.pBufferInfo = &bufferInfo;
 
-    std::array<VkWriteDescriptorSet, 3> writes = { tlasWrite, imageWrite, uboWrite };
+    VkDescriptorBufferInfo instanceAddressesBufferInfo{};
+    instanceAddressesBufferInfo.buffer = m_instanceAddressesBuffers[m_currentFrame]->getBuffer();
+    instanceAddressesBufferInfo.offset = 0;
+    instanceAddressesBufferInfo.range = VK_WHOLE_SIZE;
+
+    VkWriteDescriptorSet instanceAddressesWrite{};
+    instanceAddressesWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    instanceAddressesWrite.dstSet = m_rtDescriptorSets[m_currentFrame];
+    instanceAddressesWrite.dstBinding = 3;
+    instanceAddressesWrite.dstArrayElement = 0;
+    instanceAddressesWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    instanceAddressesWrite.descriptorCount = 1;
+    instanceAddressesWrite.pBufferInfo = &instanceAddressesBufferInfo;
+
+    std::array<VkWriteDescriptorSet, 4> writes = { tlasWrite, imageWrite, uboWrite, instanceAddressesWrite };
     vkUpdateDescriptorSets(m_vulkanDevice->getDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
     m_rtDescriptorSetsValid[m_currentFrame] = true;
 }
@@ -821,6 +839,8 @@ void VulkanRenderer::updateTLAS(const std::vector<RTInstanceData>& instances) {
     if (instances.empty()) return;
 
     std::vector<VkAccelerationStructureInstanceKHR> vkInstances(instances.size());
+    std::vector<InstanceAddresses> instanceAddresses(instances.size());
+
     for (size_t i = 0; i < instances.size(); ++i) {
         const auto& inst = instances[i];
         VkTransformMatrixKHR transform{};
@@ -835,6 +855,9 @@ void VulkanRenderer::updateTLAS(const std::vector<RTInstanceData>& instances) {
         vkInstances[i].instanceShaderBindingTableRecordOffset = 0;
         vkInstances[i].flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
         vkInstances[i].accelerationStructureReference = inst.blasAddress;
+
+        instanceAddresses[i].vertexBufferAddress = inst.vertexBufferAddress;
+        instanceAddresses[i].indexBufferAddress = inst.indexBufferAddress;
     }
 
     VkDeviceSize bufferSize = sizeof(VkAccelerationStructureInstanceKHR) * vkInstances.size();
@@ -852,6 +875,14 @@ void VulkanRenderer::updateTLAS(const std::vector<RTInstanceData>& instances) {
 
     m_tlas[m_currentFrame]->buildTLAS(m_commandPool, m_vulkanDevice->getGraphicsQueue(), *instanceBuffer, static_cast<uint32_t>(vkInstances.size()), false);
 
+    VkDeviceSize addrBufferSize = sizeof(InstanceAddresses) * instanceAddresses.size();
+    VulkanBuffer addrStagingBuffer(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
+    addrStagingBuffer.create(addrBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    addrStagingBuffer.setData(instanceAddresses.data(), addrBufferSize);
+
+    m_instanceAddressesBuffers[m_currentFrame] = std::make_unique<VulkanBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
+    m_instanceAddressesBuffers[m_currentFrame]->create(addrBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    VulkanCommands::copyBuffer(m_vulkanDevice->getDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), addrStagingBuffer.getBuffer(), m_instanceAddressesBuffers[m_currentFrame]->getBuffer(), addrBufferSize);
     // instanceBuffer can be released after the build completes — the AS build reads it
     // synchronously within this function via the single-time command submission, so it's
     // safe to let this unique_ptr go out of scope here.
