@@ -7,7 +7,7 @@
 #include "Window.hpp"
 #include "events/ApplicationEvent.hpp"
 #include "core/Assert.hpp"
-#include "events/VsyncEvent.hpp"
+#include "events/RenderingEvents.hpp"
 #include "scene/SceneManager.hpp"
 #include "scene/Scene.hpp"
 #include "servers/input/InputServer.hpp"

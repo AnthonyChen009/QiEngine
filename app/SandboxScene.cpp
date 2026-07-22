@@ -30,7 +30,7 @@ void SandboxScene::onReady() {
     m_testNode2 = QiNew<Qi::MeshInstance3D>();
     addNode(m_testNode2);
     m_testNode2->setMesh(Qi::Application::get().getResourceLoader().Load<Qi::Mesh>("models/Chicken.obj"));
-    m_testNode2->setPosition({0,0,0});
+    m_testNode2->setPosition({1,0,0});
     m_testNode2->getComponent<Qi::MeshComponent>().albedoTexture = Qi::Application::get().getResourceLoader().Load<Qi::Texture2D>("images/75.png").get();
 
     m_camera = QiNew<CameraController>();

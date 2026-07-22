@@ -25,6 +25,7 @@ enum class EventType {
     MouseMoved,
     MouseScrolled,
     VSync,
+    UseRt,
 };
 
 enum EventCategory {

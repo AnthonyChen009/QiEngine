@@ -63,6 +63,18 @@ void VulkanRenderer::init(Window& window) {
     createDescriptorSets(VulkanUtils::PipelineType::PipelineSky);
 
     if (m_vulkanDevice->hasRTSupport()) {
+        m_graphicsPipelineRTDisplay.emplace(m_vulkanDevice->getDevice(), m_renderPass->getRenderPass(), VulkanUtils::PipelineType::PipelineRTDisplay);
+
+        std::vector<VkDescriptorSetLayout> rtDisplayLayouts(MAX_FRAMES_IN_FLIGHT, m_graphicsPipelineRTDisplay->getDescriptorSetLayout());
+        VkDescriptorSetAllocateInfo rtDisplayAllocInfo{};
+        rtDisplayAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        rtDisplayAllocInfo.descriptorPool = m_descriptorPool;
+        rtDisplayAllocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        rtDisplayAllocInfo.pSetLayouts = rtDisplayLayouts.data();
+        m_descriptorSetsRTDisplay.resize(MAX_FRAMES_IN_FLIGHT);
+        VkResult rtDisplayResult = vkAllocateDescriptorSets(m_vulkanDevice->getDevice(), &rtDisplayAllocInfo, m_descriptorSetsRTDisplay.data());
+        QI_RENDERER_ASSERT(rtDisplayResult == VK_SUCCESS, "Failed to allocate RT display descriptor sets!");
+
         m_rtPipeline.emplace(m_vulkanDevice->getDevice());
         m_rtPipeline->buildSBT(m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue());
         createRTDescriptorSets();
@@ -226,7 +238,7 @@ void VulkanRenderer::dispatchRayTracing() {
     );
 
     updateRTOutputBindingFor3D();
-    //updateRTOutputBindingForSky();
+    updateRTDisplayBinding();
     m_rtOutputSampledLastFrame = true;
 }
 
@@ -379,6 +391,10 @@ void VulkanRenderer::bindPipeline(VulkanUtils::PipelineType type) {
             selPipeline = &m_graphicsPipelineSky;
             sets = &m_descriptorSetsSky;
             break;
+        case VulkanUtils::PipelineType::PipelineRTDisplay:
+            selPipeline = &m_graphicsPipelineRTDisplay;
+            sets = &m_descriptorSetsRTDisplay;
+            break;
     }
 
     QI_RENDERER_ASSERT(selPipeline->has_value(), "Pipeline type has not been created!");
@@ -402,7 +418,7 @@ void VulkanRenderer::bindBuffers(const VertexBuffer& vertexBuffer, const IndexBu
     m_boundIndexBuffer = &indexBuffer;
 }
 
-void VulkanRenderer::updateRTOutputBindingForSky() {
+void VulkanRenderer::updateRTDisplayBinding() {
     if (!m_vulkanDevice->hasRTSupport()) return;
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -410,8 +426,8 @@ void VulkanRenderer::updateRTOutputBindingForSky() {
     imageInfo.sampler = m_rtOutputSampler;
     VkWriteDescriptorSet write{};
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet = m_descriptorSetsSky[m_currentFrame];
-    write.dstBinding = 1;
+    write.dstSet = m_descriptorSetsRTDisplay[m_currentFrame];
+    write.dstBinding = 0;
     write.dstArrayElement = 0;
     write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     write.descriptorCount = 1;

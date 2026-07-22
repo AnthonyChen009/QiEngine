@@ -41,6 +41,7 @@ private:
     Scope<ImGuiLayer> m_imGuiLayer;
     PrimitiveMeshLibrary m_primitives{*this};
     bool m_warnedNoCamera = false;
+    bool m_useRT = false;
 };
 
 }

@@ -3,6 +3,7 @@
 #include "core/Base.hpp"
 #include "core/Log.hpp"
 
+#include "events/RenderingEvents.hpp"
 #include "renderer/IndexBuffer.hpp"
 #include "renderer/Renderer.hpp"
 #include "renderer/Renderer2D.hpp"
@@ -80,7 +81,7 @@ void RenderingServer::render3D(Scene& scene) {
     ubo.proj[1][1] *= -1;
 
     // --- RT: gather instances, rebuild TLAS, update camera UBO + descriptor set ---
-    if (m_renderer->getBackend()->hasRTSupport()) {
+    if (m_renderer->getBackend()->hasRTSupport() && m_useRT) {
         std::vector<RTInstanceData> instances;
         auto rtView = scene.getRegistry().view<Transform3DComponent, MeshComponent>();
         for (auto entity : rtView) {
@@ -105,36 +106,43 @@ void RenderingServer::render3D(Scene& scene) {
     m_renderer->getBackend()->beginRenderPass();
 
     m_renderer3D->beginScene();
-
-    glm::mat4 viewNoTranslation = glm::mat4(glm::mat3(camera->getViewMatrix()));
-    glm::mat4 skyProj = camera->getProjectionMatrix();
-    skyProj[1][1] *= -1;
-    SkyUniformBufferObject skyUbo{};
-    skyUbo.invViewProj = glm::inverse(skyProj * viewNoTranslation);
-    //m_renderer->getBackend()->updateUniformBufferSky(skyUbo);
-    //m_renderer->getBackend()->drawFullscreenTriangle();
-    m_renderer->getBackend()->bindPipeline(VulkanUtils::PipelineType::Pipeline3D);
-
-    auto lightView = scene.getRegistry().view<DirectionalLightComponent>();
-    if (!lightView.empty()) {
-        auto& light = lightView.get<DirectionalLightComponent>(lightView.front());
-        ubo.lightDirection = glm::normalize(light.direction);
-        ubo.lightColor = light.color;
-        ubo.lightIntensity = light.intensity;
+    if (m_renderer->getBackend()->hasRTSupport() && m_useRT) {
+        m_renderer->getBackend()->bindPipeline(VulkanUtils::PipelineType::PipelineRTDisplay);
+        m_renderer->getBackend()->drawFullscreenTriangle();
     }
-    ubo.ambientColor = glm::vec3(1.0f);
-    ubo.ambientIntensity = 0.1f;
 
-    m_renderer->updateUniformBuffer3D(ubo);
+    if (!m_renderer->getBackend()->hasRTSupport() || !m_useRT) {
+        glm::mat4 viewNoTranslation = glm::mat4(glm::mat3(camera->getViewMatrix()));
+        glm::mat4 skyProj = camera->getProjectionMatrix();
+        skyProj[1][1] *= -1;
+        SkyUniformBufferObject skyUbo{};
+        skyUbo.invViewProj = glm::inverse(skyProj * viewNoTranslation);
+        m_renderer->getBackend()->updateUniformBufferSky(skyUbo);
+        m_renderer->getBackend()->drawFullscreenTriangle();
+        m_renderer->getBackend()->bindPipeline(VulkanUtils::PipelineType::Pipeline3D);
 
-    auto view = scene.getRegistry().view<Transform3DComponent, MeshComponent>();
-    for (auto entity : view) {
-        Transform3DComponent& transform = view.get<Transform3DComponent>(entity);
-        MeshComponent& meshComponent = view.get<MeshComponent>(entity);
-        if (meshComponent.mesh) {
-            m_renderer3D->drawMesh(meshComponent.mesh, transform.worldTransform, meshComponent.albedoTexture);
+        auto lightView = scene.getRegistry().view<DirectionalLightComponent>();
+        if (!lightView.empty()) {
+            auto& light = lightView.get<DirectionalLightComponent>(lightView.front());
+            ubo.lightDirection = glm::normalize(light.direction);
+            ubo.lightColor = light.color;
+            ubo.lightIntensity = light.intensity;
+        }
+        ubo.ambientColor = glm::vec3(1.0f);
+        ubo.ambientIntensity = 0.1f;
+
+        m_renderer->updateUniformBuffer3D(ubo);
+
+        auto view = scene.getRegistry().view<Transform3DComponent, MeshComponent>();
+        for (auto entity : view) {
+            Transform3DComponent& transform = view.get<Transform3DComponent>(entity);
+            MeshComponent& meshComponent = view.get<MeshComponent>(entity);
+            if (meshComponent.mesh) {
+                m_renderer3D->drawMesh(meshComponent.mesh, transform.worldTransform, meshComponent.albedoTexture);
+            }
         }
     }
+
     m_renderer3D->endScene();
 }
 
@@ -180,7 +188,12 @@ void RenderingServer::onWindowResize(unsigned int x, unsigned int y) {
     m_renderer->onWindowResize(x, y);
 }
 
-void RenderingServer::onEvent(Qi::Event& event) {
+void RenderingServer::onEvent(Event& event) {
+    if (event.getEventType() == EventType::UseRt) {
+        UseRtEvent& e = static_cast<UseRtEvent&>(event);
+        m_useRT = e.isEnabled();
+    }
+
     m_imGuiLayer->onEvent(event);
 }
 

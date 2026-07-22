@@ -19,4 +19,20 @@ private:
     bool m_enabled;
 };
 
+class UseRtEvent : public Event {
+public:
+    UseRtEvent(bool enabled) : m_enabled(enabled) {}
+    bool isEnabled() const { return m_enabled; }
+    std::string toString() const override {
+        std::stringstream ss;
+		ss << "UseRtEvent: " << m_enabled;
+		return ss.str();
+    }
+    QI_EVENT_CLASS_TYPE(UseRt);
+    QI_EVENT_CLASS_CATEGORY(eventCategoryApplication)
+private:
+    bool m_enabled;
+};
+
+
 }

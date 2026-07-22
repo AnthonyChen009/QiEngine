@@ -97,7 +97,7 @@ private:
     void cleanupRTOutputImage();
     void updateRTOutputBindingFor3D();
     //test
-    void updateRTOutputBindingForSky();
+    void updateRTDisplayBinding();
 private:
     VulkanInstance m_instance;
 
@@ -112,6 +112,7 @@ private:
     std::optional<VulkanGraphicsPipeline> m_graphicsPipeline2D;
     std::optional<VulkanGraphicsPipeline> m_graphicsPipeline3D;
     std::optional<VulkanRTPipeline> m_rtPipeline;
+    std::optional<VulkanGraphicsPipeline> m_graphicsPipelineRTDisplay;
     std::optional<VulkanGraphicsPipeline> m_graphicsPipelineSky;
 
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
@@ -141,6 +142,7 @@ private:
     std::vector<VkDescriptorSet> m_descriptorSets2D;
     std::vector<VkDescriptorSet> m_descriptorSets3D;
     std::vector<VkDescriptorSet> m_rtDescriptorSets;
+    std::vector<VkDescriptorSet> m_descriptorSetsRTDisplay;
     std::vector<VkDescriptorSet> m_descriptorSetsSky;
 
     std::vector<VkCommandBuffer> m_commandBuffers;

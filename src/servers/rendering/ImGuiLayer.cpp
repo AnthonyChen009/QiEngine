@@ -2,6 +2,7 @@
 
 #include "core/Application.hpp"
 #include "core/Log.hpp"
+#include "events/RenderingEvents.hpp"
 #include "imgui.h"
 #include "core/api/Input.hpp"
 
@@ -112,12 +113,17 @@ void ImGuiLayer::render(Timestep ts) {
 
     if (ImGui::CollapsingHeader("Window")) {
         static bool vsync = false;
+        static bool useRT = false;
 
         ImGui::Text("API: Vulkan");
         ImGui::Text("Resolution: 1280 x 720");
         if (ImGui::Checkbox("VSync", &vsync)) {
-            Qi::VSyncEvent event(vsync);
-            Qi::Application::get().onEvent(event);
+            VSyncEvent event(vsync);
+            Application::get().onEvent(event);
+        }
+        if (ImGui::Checkbox("Use RT", &useRT)) {
+            UseRtEvent event(useRT);
+            Application::get().onEvent(event);
         }
     }
 
