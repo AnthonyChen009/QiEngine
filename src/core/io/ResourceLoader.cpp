@@ -6,8 +6,7 @@
 namespace Qi {
 
 template<>
-std::shared_ptr<Texture2D>
-ResourceLoader::Load<Texture2D>(const std::string& path) {
+std::shared_ptr<Texture2D> ResourceLoader::Load<Texture2D>(const std::string& path) {
     if (auto cached = m_textureCache.get(path)) {
         return cached;
     }
@@ -17,8 +16,7 @@ ResourceLoader::Load<Texture2D>(const std::string& path) {
 }
 
 template<>
-std::shared_ptr<Mesh>
-ResourceLoader::Load<Mesh>(const std::string& path) {
+std::shared_ptr<Mesh> ResourceLoader::Load<Mesh>(const std::string& path) {
     if (auto cached = m_meshCache.get(path)) {
         return cached;
     }
@@ -28,5 +26,6 @@ ResourceLoader::Load<Mesh>(const std::string& path) {
     m_meshCache.insert(path, mesh);
     return mesh;
 }
+
 
 }

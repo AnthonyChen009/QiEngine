@@ -23,7 +23,7 @@ void Renderer3D::drawCube() {
     // m_renderer.getBackend()->drawIndexed(6);
 }
 
-void Renderer3D::drawMesh(const std::shared_ptr<Mesh>& mesh, const glm::mat4& transform, Texture2D* texture, bool useRT) {
+void Renderer3D::drawMesh(const std::shared_ptr<Mesh>& mesh, const glm::mat4& transform, std::shared_ptr<Texture2D>& texture, bool useRT) {
     m_renderer.getBackend()->bindBuffers(mesh->getVertexBuffer(), mesh->getIndexBuffer());
     PushConstant push{};
     push.transform = transform;
@@ -34,6 +34,10 @@ void Renderer3D::drawMesh(const std::shared_ptr<Mesh>& mesh, const glm::mat4& tr
     m_renderer.getBackend()->pushConstants3D(push);
     m_renderer.getBackend()->drawIndexed(1);
 
+}
+
+std::shared_ptr<Material> Renderer3D::createMaterial(const MaterialParameters& params, const std::string& path) {
+    return m_renderer.getBackend()->createMaterial(params, path);
 }
 
 void Renderer3D::endScene() {

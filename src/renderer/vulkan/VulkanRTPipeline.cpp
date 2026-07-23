@@ -54,7 +54,7 @@ void VulkanRTPipeline::createDescriptorSetLayout() {
     tlasBinding.binding = 0;
     tlasBinding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     tlasBinding.descriptorCount = 1;
-    tlasBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+    tlasBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 
     VkDescriptorSetLayoutBinding outputImageBinding{};
     outputImageBinding.binding = 1;
@@ -74,7 +74,22 @@ void VulkanRTPipeline::createDescriptorSetLayout() {
     instanceAddressesBinding.descriptorCount = 1;
     instanceAddressesBinding.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 
-    std::array<VkDescriptorSetLayoutBinding, 4> bindings = { tlasBinding, outputImageBinding, cameraUboBinding, instanceAddressesBinding};
+    VkDescriptorSetLayoutBinding materialsBinding{};
+    materialsBinding.binding = 4;
+    materialsBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    materialsBinding.descriptorCount = 1;
+    materialsBinding.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+
+    VkDescriptorSetLayoutBinding accumulationBinding{};
+    accumulationBinding.binding = 5;
+    accumulationBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    accumulationBinding.descriptorCount = 1;
+    accumulationBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR; // only raygen reads/writes this
+
+    std::array<VkDescriptorSetLayoutBinding, 6> bindings = {
+        tlasBinding, outputImageBinding, cameraUboBinding, instanceAddressesBinding, materialsBinding, accumulationBinding
+    };
+
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -235,7 +250,7 @@ void VulkanRTPipeline::createRTPipeline() {
     pipelineInfo.pStages = stages.data();
     pipelineInfo.groupCount = static_cast<uint32_t>(m_shaderGroups.size());
     pipelineInfo.pGroups = m_shaderGroups.data();
-    pipelineInfo.maxPipelineRayRecursionDepth = 4; // no secondary rays yet
+    pipelineInfo.maxPipelineRayRecursionDepth = 5;
     pipelineInfo.layout = m_pipelineLayout;
 
     VkResult result = pfnCreateRTPipelines(

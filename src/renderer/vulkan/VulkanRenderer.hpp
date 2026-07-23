@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include "renderer/Material.hpp"
 #include "renderer/RendererBackend.hpp"
 #include "core/Window.hpp"
 #include <cstdint>
@@ -10,6 +11,7 @@
 #include "VulkanVertexBuffer.hpp"
 #include "VulkanIndexBuffer.hpp"
 #include "VulkanUniformBuffer.hpp"
+#include "renderer/types/GPUMaterial.hpp"
 #include "renderer/types/RTCameraUBO.hpp"
 #include "renderer/types/RTInstanceData.hpp"
 #include "renderer/types/SkyUbo.hpp"
@@ -41,7 +43,7 @@ public:
     void drawIndexed(uint32_t count) override;
     void updateUniformBuffer2D() override;
     void updateUniformBuffer3D(UniformBufferObject& ubo) override;
-    void updateUniformBufferRT(RTCameraUBO& ubo) override;
+    void updateUniformBufferRT(RTCameraUBO& ubo, bool needsUpdate) override;
     void updateUniformBufferSky(SkyUniformBufferObject& ubo) override;
     void pushConstants2D(const PushConstant& push) override;
     void pushConstants3D(const PushConstant& push) override;
@@ -52,6 +54,7 @@ public:
     void bindPipeline(VulkanUtils::PipelineType type) override;
     void bindBuffers(const VertexBuffer& vertexBuffer, const IndexBuffer& indexBuffer) override;
     void drawFullscreenTriangle() override;
+    std::shared_ptr<Material> createMaterial(const MaterialParameters& params, const std::string& path) override;
     void waitIdle() override;
     std::shared_ptr<VertexBuffer> createVertexBuffer(const std::vector<Vertex>& vertices) override;
     std::shared_ptr<IndexBuffer> createIndexBuffer(const std::vector<uint32_t>& indices) override;
@@ -68,6 +71,7 @@ public:
     void updateRTDescriptorSet() override;
     void dispatchRayTracing() override;
     void beginRenderPass() override;
+    void uploadMaterialsIfDirty() override;
 private:
     void createInstance(const std::string& appName);
     void pickPhysicalDevice();
@@ -98,6 +102,9 @@ private:
     void updateRTOutputBindingFor3D();
     //test
     void updateRTDisplayBinding();
+    uint32_t registerMaterial(const MaterialParameters& params);
+    void createRTAccumulationImage();
+    void cleanupRTAccumulationImage();
 private:
     VulkanInstance m_instance;
 
@@ -126,12 +133,28 @@ private:
     VkDeviceMemory m_rtOutputImageMemory = VK_NULL_HANDLE;
     VkImageView m_rtOutputImageView = VK_NULL_HANDLE;
 
+    VkImage m_rtAccumulationImage = VK_NULL_HANDLE;
+    VkDeviceMemory m_rtAccumulationImageMemory = VK_NULL_HANDLE;
+    VkImageView m_rtAccumulationImageView = VK_NULL_HANDLE;
+
+    glm::mat4 m_lastInvView{};
+    glm::mat4 m_lastInvProj{};
+    uint32_t m_accumulatedSamples = 0;
+    bool m_hasLastCameraMatrices = false;
+
     std::vector<VkFramebuffer> m_swapChainFrameBuffers;
+
 
     std::unordered_map<std::string, std::shared_ptr<VulkanTexture>> m_textureCache;
 
     const VertexBuffer* m_boundVertexBuffer = nullptr;
     const IndexBuffer* m_boundIndexBuffer = nullptr;
+
+    std::vector<GPUMaterial> m_materialsList;
+    std::unique_ptr<VulkanBuffer> m_materialsBuffer;
+    bool m_materialsBufferDirty = false;
+
+    std::shared_ptr<Material> m_defaultMaterial;
 
     std::vector<std::unique_ptr<VulkanUniformBuffer>> m_uniformBuffers2D;
     std::vector<std::unique_ptr<VulkanUniformBuffer>> m_uniformBuffers3D;

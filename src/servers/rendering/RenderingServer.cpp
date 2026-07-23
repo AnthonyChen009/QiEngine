@@ -75,12 +75,13 @@ void RenderingServer::render3D(Scene& scene) {
     }
     m_warnedNoCamera = false;
 
+    m_renderer->getBackend()->uploadMaterialsIfDirty();
+
     UniformBufferObject ubo{};
     ubo.view = camera->getViewMatrix();
     ubo.proj = camera->getProjectionMatrix();
     ubo.proj[1][1] *= -1;
-
-    // --- RT: gather instances, rebuild TLAS, update camera UBO + descriptor set ---
+    //fix accumulation buffer when instance size changes or an object has moved
     if (m_renderer->getBackend()->hasRTSupport() && m_useHybridRT) {
         std::vector<RTInstanceData> instances;
         auto rtView = scene.getRegistry().view<Transform3DComponent, MeshComponent>();
@@ -96,6 +97,7 @@ void RenderingServer::render3D(Scene& scene) {
             instance.instanceCustomIndex = instanceIndex++;
             instance.vertexBufferAddress = static_cast<const VulkanVertexBuffer&>(meshComp.mesh->getVertexBuffer()).getVulkanBuffer().getDeviceAddress();
             instance.indexBufferAddress = static_cast<const VulkanIndexBuffer&>(meshComp.mesh->getIndexBuffer()).getVulkanBuffer().getDeviceAddress();
+            instance.materialIndex = meshComp.material ? meshComp.material->getIndex() : 0;
             instances.push_back(instance);
         }
         m_renderer->getBackend()->updateTLAS(instances);
@@ -104,7 +106,8 @@ void RenderingServer::render3D(Scene& scene) {
             RTCameraUBO rtUBO{};
             rtUBO.invView = glm::inverse(ubo.view);
             rtUBO.invProj = glm::inverse(ubo.proj);
-            m_renderer->getBackend()->updateUniformBufferRT(rtUBO);
+            rtUBO.frameIndex = m_frameCounter++;
+            m_renderer->getBackend()->updateUniformBufferRT(rtUBO, false); //TODO update
             m_renderer->getBackend()->updateRTDescriptorSet();
             m_renderer->getBackend()->dispatchRayTracing();
         }
@@ -153,10 +156,10 @@ void RenderingServer::render3D(Scene& scene) {
     m_renderer3D->endScene();
 }
 
-std::shared_ptr<Mesh> RenderingServer::createMesh(const std::string& path) {
-    return nullptr;
+std::shared_ptr<Material> RenderingServer::createMaterial(const MaterialParameters& params, const std::string& path) {
+    return m_renderer3D->createMaterial(params, path);
 }
-//use by meshlib only //2d may not need blas so disable for 2d
+
 std::shared_ptr<Mesh> RenderingServer::createMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
     if (vertices.empty() || indices.empty()) {
         QI_CORE_ERROR("createMesh called with empty vertex/index data — skipping mesh creation.");

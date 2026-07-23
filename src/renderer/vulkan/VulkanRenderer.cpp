@@ -1,6 +1,7 @@
 #include "SDL3/SDL_video.h"
 #include "core/Base.hpp"
 #include "core/Window.hpp"
+#include "renderer/Material.hpp"
 #include "renderer/types/RTCameraUBO.hpp"
 #include "renderer/types/SkyUbo.hpp"
 #include "renderer/utils/VulkanUtils.hpp"
@@ -14,6 +15,7 @@
 #include <vulkan/vulkan.h>
 #include "core/FileSystem.hpp"
 #include "core/Assert.hpp"
+#include "renderer/vulkan/VulkanMaterial.hpp"
 #include "renderer/vulkan/VulkanSampler.hpp"
 #include "types/Vertex.hpp"
 #include <glm/glm.hpp>
@@ -50,6 +52,7 @@ void VulkanRenderer::init(Window& window) {
 
     if (m_vulkanDevice->hasRTSupport()) {
         createRTOutputImage();
+        createRTAccumulationImage();
     }
 
     createFrameBuffers();
@@ -92,6 +95,9 @@ void VulkanRenderer::init(Window& window) {
         VK_VERSION_PATCH(properties.apiVersion));
 
     QI_CORE_INFO("Driver Version: {0}", properties.driverVersion);
+
+    m_defaultMaterial = std::make_shared<VulkanMaterial>(MaterialParameters{}, "default");
+    registerMaterial(m_defaultMaterial->getParameters());
 }
 
 bool VulkanRenderer::beginFrame() {
@@ -458,6 +464,7 @@ void VulkanRenderer::cleanupSwapChain() {
 
     if (m_vulkanDevice->hasRTSupport()) {
         cleanupRTOutputImage();
+        cleanupRTAccumulationImage();
         m_rtOutputSampledLastFrame = false;
         std::fill(m_rtDescriptorSetsValid.begin(), m_rtDescriptorSetsValid.end(), false);
     }
@@ -476,6 +483,9 @@ void VulkanRenderer::recreateSwapChain() {
     createFrameBuffers();
     if (m_vulkanDevice->hasRTSupport()) {
         createRTOutputImage();
+        createRTAccumulationImage();
+        m_accumulatedSamples = 0;
+        m_hasLastCameraMatrices = false;
     }
 }
 
@@ -510,7 +520,21 @@ void VulkanRenderer::updateUniformBuffer3D(UniformBufferObject& ubo) {
     m_uniformBuffers3D[m_currentFrame]->setData(&ubo, sizeof(ubo));
 }
 
-void VulkanRenderer::updateUniformBufferRT(RTCameraUBO& ubo) {
+void VulkanRenderer::updateUniformBufferRT(RTCameraUBO& ubo, bool needsUpdate) {
+    bool cameraMoved = !m_hasLastCameraMatrices || (ubo.invView != m_lastInvView) || (ubo.invProj != m_lastInvProj);
+
+    if (cameraMoved || needsUpdate) {
+        m_accumulatedSamples = 0;
+    } else {
+        m_accumulatedSamples++;
+    }
+
+    ubo.accumulatedSamples = m_accumulatedSamples;
+
+    m_lastInvView = ubo.invView;
+    m_lastInvProj = ubo.invProj;
+    m_hasLastCameraMatrices = true;
+
     m_rtCameraUniformBuffers[m_currentFrame]->setData(&ubo, sizeof(ubo));
 }
 
@@ -527,7 +551,7 @@ void VulkanRenderer::createDescriptorPool() {
     poolSizes[2].type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
     poolSizes[3].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    poolSizes[3].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
+    poolSizes[3].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 4);
     poolSizes[4].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     poolSizes[4].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
 
@@ -672,7 +696,44 @@ void VulkanRenderer::updateRTDescriptorSet() {
     instanceAddressesWrite.descriptorCount = 1;
     instanceAddressesWrite.pBufferInfo = &instanceAddressesBufferInfo;
 
-    std::array<VkWriteDescriptorSet, 4> writes = { tlasWrite, imageWrite, uboWrite, instanceAddressesWrite };
+    VkDescriptorBufferInfo materialsBufferInfo{};
+    VkWriteDescriptorSet materialsWrite{};
+    std::vector<VkWriteDescriptorSet> writes = { tlasWrite, imageWrite, uboWrite, instanceAddressesWrite };
+
+    if (m_materialsBuffer) {
+        materialsBufferInfo.buffer = m_materialsBuffer->getBuffer();
+        materialsBufferInfo.offset = 0;
+        materialsBufferInfo.range = VK_WHOLE_SIZE;
+
+        materialsWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        materialsWrite.dstSet = m_rtDescriptorSets[m_currentFrame];
+        materialsWrite.dstBinding = 4;
+        materialsWrite.dstArrayElement = 0;
+        materialsWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        materialsWrite.descriptorCount = 1;
+        materialsWrite.pBufferInfo = &materialsBufferInfo;
+
+        writes.push_back(materialsWrite);
+    }
+
+    VkDescriptorImageInfo accumulationImageInfo{};
+    VkWriteDescriptorSet accumulationWrite{};
+
+    if (m_rtAccumulationImage != VK_NULL_HANDLE) {
+        accumulationImageInfo.imageView = m_rtAccumulationImageView;
+        accumulationImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+        accumulationWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        accumulationWrite.dstSet = m_rtDescriptorSets[m_currentFrame];
+        accumulationWrite.dstBinding = 5;
+        accumulationWrite.dstArrayElement = 0;
+        accumulationWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        accumulationWrite.descriptorCount = 1;
+        accumulationWrite.pImageInfo = &accumulationImageInfo;
+
+        writes.push_back(accumulationWrite);
+    }
+
     vkUpdateDescriptorSets(m_vulkanDevice->getDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
     m_rtDescriptorSetsValid[m_currentFrame] = true;
 }
@@ -722,6 +783,66 @@ void VulkanRenderer::createRTOutputImage() {
     );
 
     VulkanCommands::endSingleTimeCommands(m_vulkanDevice->getDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), cmd);
+}
+
+void VulkanRenderer::createRTAccumulationImage() {
+    VkExtent2D extent = m_swapChain->getExtent();
+
+    VulkanImage::createImage(
+        m_vulkanDevice->getDevice(),
+        m_vulkanDevice->getPhysicalDevice(),
+        extent.width, extent.height,
+        VK_FORMAT_R32G32B32A32_SFLOAT,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_STORAGE_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        m_rtAccumulationImage,
+        m_rtAccumulationImageMemory
+    );
+
+    m_rtAccumulationImageView = VulkanImage::createImageView(
+        m_vulkanDevice->getDevice(),
+        m_rtAccumulationImage,
+        VK_FORMAT_R32G32B32A32_SFLOAT,
+        VK_IMAGE_ASPECT_COLOR_BIT
+    );
+
+    VkCommandBuffer cmd = VulkanCommands::beginSingleTimeCommands(m_vulkanDevice->getDevice(), m_commandPool);
+
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = m_rtAccumulationImage;
+    barrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+        0, 0, nullptr, 0, nullptr, 1, &barrier
+    );
+
+    VulkanCommands::endSingleTimeCommands(m_vulkanDevice->getDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), cmd);
+}
+
+void VulkanRenderer::cleanupRTAccumulationImage() {
+    if (m_rtAccumulationImageView != VK_NULL_HANDLE) {
+        vkDestroyImageView(m_vulkanDevice->getDevice(), m_rtAccumulationImageView, nullptr);
+        m_rtAccumulationImageView = VK_NULL_HANDLE;
+    }
+    if (m_rtAccumulationImage != VK_NULL_HANDLE) {
+        vkDestroyImage(m_vulkanDevice->getDevice(), m_rtAccumulationImage, nullptr);
+        m_rtAccumulationImage = VK_NULL_HANDLE;
+    }
+    if (m_rtAccumulationImageMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_vulkanDevice->getDevice(), m_rtAccumulationImageMemory, nullptr);
+        m_rtAccumulationImageMemory = VK_NULL_HANDLE;
+    }
 }
 
 void VulkanRenderer::cleanupRTOutputImage() {
@@ -809,6 +930,53 @@ std::shared_ptr<Texture2D> VulkanRenderer::getOrLoadTexture(const std::string& p
     return m_textureCache[path];
 }
 
+uint32_t VulkanRenderer::registerMaterial(const MaterialParameters& params) {
+    GPUMaterial gpuMat{};
+    gpuMat.albedo = params.albedo;
+    gpuMat.roughness = params.roughness;
+    gpuMat.metallic = params.metallic;
+    gpuMat.emissionColor = params.emissionColor;
+    gpuMat.emissionPower = params.emissionPower;
+    gpuMat.specularProbability = params.specularProbability;
+    gpuMat.isGlass = params.isGlass ? 1u : 0u;
+    gpuMat.ior = params.ior;
+    gpuMat.absorption = params.absorption;
+    gpuMat.absorptionStrength = params.absorptionStrength;
+
+    uint32_t index = static_cast<uint32_t>(m_materialsList.size());
+    m_materialsList.push_back(gpuMat);
+    m_materialsBufferDirty = true;
+    return index;
+}
+
+void VulkanRenderer::uploadMaterialsIfDirty() {
+    if (!m_materialsBufferDirty || m_materialsList.empty()) return;
+
+    VkDeviceSize bufferSize = sizeof(GPUMaterial) * m_materialsList.size();
+
+    VulkanBuffer stagingBuffer(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
+    stagingBuffer.create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    stagingBuffer.setData(m_materialsList.data(), bufferSize);
+
+    m_materialsBuffer = std::make_unique<VulkanBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
+    m_materialsBuffer->create(
+        bufferSize,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+    );
+    VulkanCommands::copyBuffer(m_vulkanDevice->getDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), stagingBuffer.getBuffer(), m_materialsBuffer->getBuffer(), bufferSize);
+
+    m_materialsBufferDirty = false;
+
+}
+
+std::shared_ptr<Material> VulkanRenderer::createMaterial(const MaterialParameters& params, const std::string& path) {
+    uint32_t gpuIndex = registerMaterial(params);
+    std::shared_ptr<Material> material = std::make_shared<VulkanMaterial>(params, path);
+    material->setIndex(gpuIndex);
+    return material;
+}
+
 std::shared_ptr<VertexBuffer> VulkanRenderer::createVertexBuffer(const std::vector<Vertex>& vertices) {
     return std::make_shared<VulkanVertexBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), vertices, m_vulkanDevice->hasRTSupport());
 }
@@ -858,6 +1026,7 @@ void VulkanRenderer::updateTLAS(const std::vector<RTInstanceData>& instances) {
 
         instanceAddresses[i].vertexBufferAddress = inst.vertexBufferAddress;
         instanceAddresses[i].indexBufferAddress = inst.indexBufferAddress;
+        instanceAddresses[i].materialIndex = inst.materialIndex;
     }
 
     VkDeviceSize bufferSize = sizeof(VkAccelerationStructureInstanceKHR) * vkInstances.size();

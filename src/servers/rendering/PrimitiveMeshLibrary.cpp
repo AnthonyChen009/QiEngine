@@ -18,7 +18,7 @@ std::shared_ptr<Mesh> PrimitiveMeshLibrary::getBox() {
 
 std::shared_ptr<Mesh> PrimitiveMeshLibrary::getSphere() {
     if (!m_sphere) {
-        auto [vertices, indices] = Primitives::generateSphere(1.0f, 32, 16);
+        auto [vertices, indices] = Primitives::generateSphere(0.5f, 32, 16);
         m_sphere = m_renderingServer.createMesh(vertices, indices);
     }
     return m_sphere;

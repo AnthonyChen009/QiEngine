@@ -72,12 +72,10 @@ MeshDataPair Primitives::generateSphere(float radius, uint32_t radialSegments, u
         for (uint32_t seg = 0; seg < radialSegments; ++seg) {
             uint32_t a = ring * (radialSegments + 1) + seg;
             uint32_t b = a + radialSegments + 1;
-
-            indices.push_back(a); indices.push_back(b); indices.push_back(a + 1);
-            indices.push_back(b); indices.push_back(b + 1); indices.push_back(a + 1);
+            indices.push_back(a); indices.push_back(a + 1); indices.push_back(b);
+            indices.push_back(a + 1); indices.push_back(b + 1); indices.push_back(b);
         }
     }
-
     return { vertices, indices };
 }
 

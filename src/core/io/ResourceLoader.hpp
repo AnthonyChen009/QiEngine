@@ -3,10 +3,12 @@
 #include <string>
 #include <memory>
 #include "core/io/MeshLoader.hpp"
+#include "renderer/types/MaterialParameters.hpp"
 #include "servers/rendering/RenderingServer.hpp"
 #include "core/Assert.hpp"
 #include "ResourceCache.hpp"
 #include "renderer/vulkan/Mesh.hpp"
+#include "renderer/Material.hpp"
 
 namespace Qi {
 
@@ -24,10 +26,27 @@ public:
         QI_CORE_ASSERT(sizeof(T) == 0, "Resource type not supported");
     }
 
+    template<typename T, typename... Args>
+    std::shared_ptr<T> Create(Args&&... args) {
+        if constexpr (std::is_same_v<T, Material>) {
+            return CreateMaterialImpl(std::forward<Args>(args)...);
+        }
+        else {
+            QI_CORE_ASSERT(sizeof(T) == 0, "Resource type not supported");
+            return nullptr;
+        }
+    }
+
+private:
+    std::shared_ptr<Material> CreateMaterialImpl(const MaterialParameters& params, const std::string& path) {
+        return m_renderingServer.createMaterial(params, path);
+    }
+
 private:
     RenderingServer& m_renderingServer;
     ResourceCache<std::string, Mesh> m_meshCache;
     ResourceCache<std::string, Texture2D> m_textureCache;
+    //ResourceCache<std::string, Material> m_materialCache;
     MeshLoader m_meshLoader;
 };
 

@@ -30,4 +30,8 @@ const Ref<Mesh>& MeshInstance3D::getMesh() const {
     return getComponent<MeshComponent>().mesh;
 }
 
+void MeshInstance3D::setMaterial(std::shared_ptr<Material>& mat) {
+    getComponent<MeshComponent>().material = mat;
+}
+
 }
