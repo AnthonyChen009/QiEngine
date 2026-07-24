@@ -161,6 +161,10 @@ private:
     std::vector<std::unique_ptr<VulkanUniformBuffer>> m_skyUniformBuffers;
     std::vector<std::unique_ptr<VulkanUniformBuffer>> m_rtCameraUniformBuffers;
     std::vector<std::unique_ptr<VulkanBuffer>> m_instanceAddressesBuffers;
+    std::vector<std::unique_ptr<VulkanBuffer>> m_tlasInstanceStagingBuffers;
+    std::vector<std::unique_ptr<VulkanBuffer>> m_tlasInstanceBuffers;
+    std::vector<std::unique_ptr<VulkanBuffer>> m_tlasScratchBuffers;
+    std::vector<std::unique_ptr<VulkanBuffer>> m_instanceAddressStagingBuffers;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> m_descriptorSets2D;
@@ -189,6 +193,8 @@ private:
     bool m_vsyncTogglePending = false;
     std::vector<bool> m_rtDescriptorSetsValid;
     bool m_rtOutputSampledLastFrame = false;
+
+
 
 };
 

@@ -1,5 +1,7 @@
 #version 460
 #extension GL_EXT_ray_tracing : require
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_ballot : require
 
 struct HitPayload {
     float hitDistance;
@@ -7,11 +9,11 @@ struct HitPayload {
     int objectIndex;
     int hitType;
     bool isBackface;
-    int bounceCount;
     vec3 albedo;
     uint seed;
-    vec3 accumulatedLight;
-    vec3 throughput;
+    vec3 emissionColor;
+    float emissionPower;
+    vec3 nextRayDirection;
 };
 
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
@@ -40,11 +42,16 @@ float randomFloat(inout uint seed) {
 }
 
 vec3 vectorInUnitSphere(inout uint seed) {
-    return normalize(vec3(
+    vec3 v = vec3(
         randomFloat(seed) * 2.0 - 1.0,
         randomFloat(seed) * 2.0 - 1.0,
         randomFloat(seed) * 2.0 - 1.0
-    ));
+    );
+    float lenSq = dot(v, v);
+    if (lenSq < 1e-8) {
+        return vec3(0.0, 1.0, 0.0);
+    }
+    return v / sqrt(lenSq);
 }
 
 vec3 randomOnHemisphere(inout uint seed, vec3 normal) {
@@ -70,7 +77,6 @@ void main() {
     const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
     const vec2 inUV = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
     vec2 d = inUV * 2.0 - 1.0;
-
     vec4 origin = camera.invView * vec4(0, 0, 0, 1);
     vec4 target = camera.invProj * vec4(d.x, d.y, 1, 1);
     vec4 direction = camera.invView * vec4(normalize(target.xyz), 0);
@@ -78,37 +84,82 @@ void main() {
     uint baseSeed = uint(gl_LaunchIDEXT.x + gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x);
     baseSeed *= camera.frameIndex;
 
-    const int samplesPerPixel = 4; // tune this
+    const int samplesPerPixel = 1;
+    const int maxBounces = 4;
+    const float maxLuminance = 40.0;
+
     vec3 color = vec3(0.0);
 
     for (int s = 0; s < samplesPerPixel; s++) {
-        payload.hitDistance = -1.0;
-        payload.worldNormal = vec3(0.0);
-        payload.objectIndex = -1;
-        payload.hitType = 0;
-        payload.isBackface = false;
-        payload.bounceCount = 0;
-        payload.seed = pcgHash(baseSeed + uint(s) * 9781u); // distinct seed per sample
-        payload.accumulatedLight = vec3(0.0);
-        payload.throughput = vec3(1.0);
+        uint seed = pcgHash(baseSeed + uint(s) * 9781u);
 
-        traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, origin.xyz, 0.001, direction.xyz, 10000.0, 0);
+        vec3 rayOrigin = origin.xyz;
+        vec3 rayDir = direction.xyz;
+        vec3 accumulatedLight = vec3(0.0);
+        vec3 throughput = vec3(1.0);
 
-        color += payload.accumulatedLight;
+        for (int bounce = 0; bounce < maxBounces; bounce++) {
+            payload.hitDistance = -1.0;
+            payload.hitType = 0;
+            payload.seed = seed;
+
+            traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, rayOrigin, 0.001, rayDir, 10000.0, 0);
+
+            seed = payload.seed;
+
+            if (payload.hitType == 0) {
+                accumulatedLight += vec3(0.0, 0.0, 0.0) * throughput;
+                break;
+            }
+
+            vec3 emittedLight = payload.emissionColor * payload.emissionPower;
+            accumulatedLight += emittedLight * throughput;
+            throughput *= payload.albedo;
+
+            if (bounce >= 2) {
+                float luminance = dot(throughput, vec3(0.2126, 0.7152, 0.0722));
+                float continuationProb = min(1.0, luminance);
+                uint activeLaneCount = subgroupBallotBitCount(subgroupBallot(true));
+                uint totalLaneCount = gl_SubgroupSize;
+                float activeLaneRatio = float(activeLaneCount) / float(totalLaneCount);
+                const float activeLaneRatioThreshold = 0.1;
+                float groupContinuationProb = continuationProb * clamp(activeLaneRatio / activeLaneRatioThreshold, 0.0, 1.0);
+                groupContinuationProb = max(groupContinuationProb, 0.05);
+                if (randomFloat(seed) >= groupContinuationProb) {
+                    break;
+                } else {
+                    throughput /= groupContinuationProb;
+                }
+            }
+
+            vec3 hitWorldPosition = rayOrigin + rayDir * payload.hitDistance;
+            rayOrigin = hitWorldPosition + payload.worldNormal * 0.001;
+            rayDir = payload.nextRayDirection;
+        }
+
+        float sampleLuminance = dot(accumulatedLight, vec3(0.2126, 0.7152, 0.0722));
+        if (sampleLuminance > maxLuminance) {
+            accumulatedLight *= maxLuminance / sampleLuminance;
+        }
+
+        color += accumulatedLight;
     }
+
     color /= float(samplesPerPixel);
+    if (any(isnan(color)) || any(isinf(color))) {
+        color = vec3(0.0);
+    }
 
     ivec2 pixel = ivec2(gl_LaunchIDEXT.xy);
     vec3 previousAccum = imageLoad(accumulationImage, pixel).rgb;
     vec3 newAccum;
-
     if (camera.accumulatedSamples == 0u) {
         newAccum = color;
     } else {
         float sampleCount = float(camera.accumulatedSamples + 1u);
         newAccum = previousAccum + (color - previousAccum) / sampleCount;
     }
-
     imageStore(accumulationImage, pixel, vec4(newAccum, 1.0));
-    imageStore(outputImage, pixel, vec4(newAccum, 1.0));
+    vec3 mapped = newAccum / (newAccum + vec3(1.0)); // Reinhard tonemap
+    imageStore(outputImage, pixel, vec4(mapped, 1.0));
 }

@@ -250,7 +250,7 @@ void VulkanRTPipeline::createRTPipeline() {
     pipelineInfo.pStages = stages.data();
     pipelineInfo.groupCount = static_cast<uint32_t>(m_shaderGroups.size());
     pipelineInfo.pGroups = m_shaderGroups.data();
-    pipelineInfo.maxPipelineRayRecursionDepth = 5;
+    pipelineInfo.maxPipelineRayRecursionDepth = 1;
     pipelineInfo.layout = m_pipelineLayout;
 
     VkResult result = pfnCreateRTPipelines(

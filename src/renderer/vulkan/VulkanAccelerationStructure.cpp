@@ -90,7 +90,7 @@ void VulkanAccelerationStructure::buildBLAS(VkCommandPool commandPool, VkQueue q
     m_deviceAddress = pfnGetASDeviceAddress(m_device, &addressInfo);
 }
 
-void VulkanAccelerationStructure::buildTLAS(VkCommandPool commandPool, VkQueue queue, const VulkanBuffer& instanceBuffer, uint32_t instanceCount, bool allowUpdate) {
+void VulkanAccelerationStructure::buildTLAS(VkCommandBuffer commandBuffer, const VulkanBuffer& instanceBuffer, VulkanBuffer& scratchBuffer, uint32_t instanceCount, bool allowUpdate) {
     m_allowsUpdate = allowUpdate;
 
     VkAccelerationStructureGeometryInstancesDataKHR instancesData{};
@@ -106,17 +106,14 @@ void VulkanAccelerationStructure::buildTLAS(VkCommandPool commandPool, VkQueue q
     VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
     buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
     buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-    buildInfo.flags = allowUpdate
-        ? (VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR)
-        : VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+    buildInfo.flags = allowUpdate ? (VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR) : VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
     buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
     buildInfo.geometryCount = 1;
     buildInfo.pGeometries = &geometry;
 
     VkAccelerationStructureBuildSizesInfoKHR sizeInfo{};
     sizeInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
-    pfnGetBuildSizes(m_device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-                      &buildInfo, &instanceCount, &sizeInfo);
+    pfnGetBuildSizes(m_device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo, &instanceCount, &sizeInfo);
 
     m_asBuffer.create(
         sizeInfo.accelerationStructureSize,
@@ -135,7 +132,6 @@ void VulkanAccelerationStructure::buildTLAS(VkCommandPool commandPool, VkQueue q
 
     buildInfo.dstAccelerationStructure = m_accelerationStructure;
 
-    VulkanBuffer scratchBuffer(m_device, m_physicalDevice);
     scratchBuffer.create(
         sizeInfo.buildScratchSize,
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -147,9 +143,7 @@ void VulkanAccelerationStructure::buildTLAS(VkCommandPool commandPool, VkQueue q
     rangeInfo.primitiveCount = instanceCount;
     const VkAccelerationStructureBuildRangeInfoKHR* pRangeInfo = &rangeInfo;
 
-    VkCommandBuffer cmd = VulkanCommands::beginSingleTimeCommands(m_device, commandPool);
-    pfnCmdBuildAS(cmd, 1, &buildInfo, &pRangeInfo);
-    VulkanCommands::endSingleTimeCommands(m_device, commandPool, queue, cmd);
+    pfnCmdBuildAS(commandBuffer, 1, &buildInfo, &pRangeInfo);
 
     VkAccelerationStructureDeviceAddressInfoKHR addressInfo{};
     addressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;

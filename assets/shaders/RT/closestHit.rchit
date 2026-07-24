@@ -10,11 +10,11 @@ struct HitPayload {
     int objectIndex;
     int hitType;
     bool isBackface;
-    int bounceCount;
     vec3 albedo;
     uint seed;
-    vec3 accumulatedLight;
-    vec3 throughput;
+    vec3 emissionColor;
+    float emissionPower;
+    vec3 nextRayDirection;
 };
 
 struct Vertex {
@@ -97,7 +97,6 @@ layout(binding = 3, set = 0, scalar) readonly buffer InstanceAddressesBuffer { I
 layout(binding = 4, set = 0, scalar) readonly buffer MaterialsBuffer { GPUMaterial materials[]; };
 
 layout(location = 0) rayPayloadInEXT HitPayload payload;
-layout(location = 1) rayPayloadEXT HitPayload bouncePayload;
 hitAttributeEXT vec2 attribs;
 
 void main() {
@@ -126,39 +125,13 @@ void main() {
     payload.objectIndex = gl_InstanceCustomIndexEXT;
     payload.hitType = 1;
     payload.isBackface = dot(gl_WorldRayDirectionEXT, worldNormal) > 0.0;
-    //actual light calcs
+    payload.albedo = mat.albedo;
+    payload.emissionColor = mat.emissionColor;
+    payload.emissionPower = mat.emissionPower;
+
     bool isSpecularBounce = mat.specularProbability >= randomFloat(payload.seed);
-    vec3 diffuseDir = normalize(payload.worldNormal + randomDirection(payload.seed));
-    vec3 specularDir = reflect(gl_WorldRayDirectionEXT, payload.worldNormal);
+    vec3 diffuseDir = normalize(worldNormal + randomDirection(payload.seed));
+    vec3 specularDir = reflect(gl_WorldRayDirectionEXT, worldNormal);
+    payload.nextRayDirection = normalize(mix(diffuseDir, specularDir, (1.0 - mat.roughness) * float(isSpecularBounce)));
 
-    vec3 emittedLight = mat.emissionColor * mat.emissionPower;
-    payload.accumulatedLight += emittedLight * payload.throughput;
-    payload.throughput *= mat.albedo;
-    const int maxBounces = 4;
-    if (payload.bounceCount < maxBounces) {
-        bool shouldContinue = true;
-
-        if (payload.bounceCount >= 2) {
-            float p = clamp(max(payload.throughput.r, max(payload.throughput.g, payload.throughput.b)), 0.1, 1.0);
-            if (randomFloat(payload.seed) > p) {
-                shouldContinue = false;
-            } else {
-                payload.throughput /= p;
-            }
-        }
-
-        if (shouldContinue) {
-            vec3 reflectDir = normalize(mix(diffuseDir, specularDir, (1.0 - mat.roughness) * float(isSpecularBounce)));
-            bouncePayload.bounceCount = payload.bounceCount + 1;
-            bouncePayload.seed = payload.seed; // already advanced by randomFloat call above
-            bouncePayload.accumulatedLight = payload.accumulatedLight;
-            bouncePayload.throughput = payload.throughput;
-            traceRayEXT(
-                topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0,
-                hitWorldPosition + worldNormal * 0.001,
-                0.001, reflectDir, 10000.0, 1
-            );
-            payload.accumulatedLight = bouncePayload.accumulatedLight;
-        }
-    }
 }

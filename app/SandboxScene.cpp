@@ -87,16 +87,7 @@ void SandboxScene::onReady() {
 
     std::shared_ptr<Qi::Material> cubeMaterial = Qi::Application::get().getResourceLoader().Create<Qi::Material>(
         Qi::MaterialParameters{
-            .albedo = glm::vec3(0.6588f, 0.6902f, 0.6980f),
-            .roughness = 0.0f,
-            .metallic = 1.0f,
-            .emissionColor = glm::vec3(0.0f, 0.0f, 0.0f),
-            .emissionPower = 0.0f,
-            .specularProbability = 1.0f,
-            .isGlass = false,
-            .ior = 1.0f,
-            .absorption = glm::vec3(0.0f, 0.0f, 0.0f),
-            .absorptionStrength = 0.0f
+
         },
         ""
     );
@@ -142,9 +133,9 @@ void SandboxScene::onReady() {
 
     displayMesh = QiNew<Qi::MeshInstance3D>();
     addNode(displayMesh);
-    displayMesh->setMesh(Qi::MeshPrimitives::SphereMesh());
+    displayMesh->setMesh(Qi::MeshPrimitives::BoxMesh());
     displayMesh->setScale({1.5f, 1.5f, 1.5f});
-    displayMesh->setPosition({0.0f, 0.0f, 0.0f});
+    displayMesh->setPosition({0.0f, -1.766f, 0.0f});
     displayMesh->setRotationEuler({0.0f, 45.0f, 0.0f});
     displayMesh->setMaterial(cubeMaterial);
 
@@ -162,9 +153,9 @@ void SandboxScene::onReady() {
 
     setActiveCamera(*m_camera);
 
-    m_directionLight = QiNew<Qi::Node3D>();
-    addNode(m_directionLight);
-    m_directionLight->addComponent<Qi::DirectionalLightComponent>();
+    // m_directionLight = QiNew<Qi::Node3D>();
+    // addNode(m_directionLight);
+    // m_directionLight->addComponent<Qi::DirectionalLightComponent>();
 }
 
 void SandboxScene::onUpdate(Qi::Timestep ts) {

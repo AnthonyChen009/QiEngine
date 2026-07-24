@@ -75,6 +75,8 @@ void VulkanRenderer::init(Window& window) {
         rtDisplayAllocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
         rtDisplayAllocInfo.pSetLayouts = rtDisplayLayouts.data();
         m_descriptorSetsRTDisplay.resize(MAX_FRAMES_IN_FLIGHT);
+
+
         VkResult rtDisplayResult = vkAllocateDescriptorSets(m_vulkanDevice->getDevice(), &rtDisplayAllocInfo, m_descriptorSetsRTDisplay.data());
         QI_RENDERER_ASSERT(rtDisplayResult == VK_SUCCESS, "Failed to allocate RT display descriptor sets!");
 
@@ -246,6 +248,7 @@ void VulkanRenderer::dispatchRayTracing() {
     updateRTOutputBindingFor3D();
     updateRTDisplayBinding();
     m_rtOutputSampledLastFrame = true;
+
 }
 
 void VulkanRenderer::onWindowResize(uint32_t width, uint32_t height) {
@@ -497,6 +500,10 @@ void VulkanRenderer::createUniformBuffers() {
     m_rtDescriptorSetsValid.resize(MAX_FRAMES_IN_FLIGHT, false);
     m_instanceAddressesBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     m_tlas.resize(MAX_FRAMES_IN_FLIGHT);
+    m_tlasInstanceStagingBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    m_tlasInstanceBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    m_tlasScratchBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    m_instanceAddressStagingBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         m_uniformBuffers2D[i] = std::make_unique<VulkanUniformBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice(), sizeof(UniformBufferObject));
@@ -545,9 +552,9 @@ void VulkanRenderer::updateUniformBufferSky(SkyUniformBufferObject& ubo) {
 void VulkanRenderer::createDescriptorPool() {
     std::array<VkDescriptorPoolSize, 5> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 8); // generous headroom
+    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 8);
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 1024 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 4); // +1 for RT-output binding on Pipeline3D
+    poolSizes[1].descriptorCount = 1024 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 4);
     poolSizes[2].type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 2);
     poolSizes[3].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -560,7 +567,7 @@ void VulkanRenderer::createDescriptorPool() {
     poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 8); // generous headroom for set count too
+    poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 8);
 
     VkResult result = vkCreateDescriptorPool(m_vulkanDevice->getDevice(), &poolInfo, nullptr, &m_descriptorPool);
     QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create descriptor pool!");
@@ -787,19 +794,17 @@ void VulkanRenderer::createRTOutputImage() {
 
 void VulkanRenderer::createRTAccumulationImage() {
     VkExtent2D extent = m_swapChain->getExtent();
-
     VulkanImage::createImage(
         m_vulkanDevice->getDevice(),
         m_vulkanDevice->getPhysicalDevice(),
         extent.width, extent.height,
         VK_FORMAT_R32G32B32A32_SFLOAT,
         VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_STORAGE_BIT,
+        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         m_rtAccumulationImage,
         m_rtAccumulationImageMemory
     );
-
     m_rtAccumulationImageView = VulkanImage::createImageView(
         m_vulkanDevice->getDevice(),
         m_rtAccumulationImage,
@@ -818,13 +823,40 @@ void VulkanRenderer::createRTAccumulationImage() {
     barrier.image = m_rtAccumulationImage;
     barrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
     barrier.srcAccessMask = 0;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; // changed: next op is a clear (transfer), not shader read/write yet
 
     vkCmdPipelineBarrier(
         cmd,
         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+        VK_PIPELINE_STAGE_TRANSFER_BIT, // changed: barrier now guards the clear, not shader access
         0, 0, nullptr, 0, nullptr, 1, &barrier
+    );
+
+    VkClearColorValue clearColor{};
+    clearColor.float32[0] = 0.0f;
+    clearColor.float32[1] = 0.0f;
+    clearColor.float32[2] = 0.0f;
+    clearColor.float32[3] = 0.0f;
+    VkImageSubresourceRange range{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+    vkCmdClearColorImage(cmd, m_rtAccumulationImage, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &range);
+
+    // second barrier: ensure the clear completes before any shader tries to read/write this image
+    VkImageMemoryBarrier postClearBarrier{};
+    postClearBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    postClearBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    postClearBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    postClearBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    postClearBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    postClearBarrier.image = m_rtAccumulationImage;
+    postClearBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+    postClearBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    postClearBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+        0, 0, nullptr, 0, nullptr, 1, &postClearBarrier
     );
 
     VulkanCommands::endSingleTimeCommands(m_vulkanDevice->getDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), cmd);
@@ -1006,24 +1038,23 @@ std::unique_ptr<VulkanAccelerationStructure> VulkanRenderer::createBLAS(const Ve
 void VulkanRenderer::updateTLAS(const std::vector<RTInstanceData>& instances) {
     if (instances.empty()) return;
 
+    VkCommandBuffer commandBuffer = m_commandBuffers[m_currentFrame];
+
     std::vector<VkAccelerationStructureInstanceKHR> vkInstances(instances.size());
     std::vector<InstanceAddresses> instanceAddresses(instances.size());
 
     for (size_t i = 0; i < instances.size(); ++i) {
         const auto& inst = instances[i];
         VkTransformMatrixKHR transform{};
-        // glm is column-major; VkTransformMatrixKHR wants row-major, top 3 rows
         for (int row = 0; row < 3; ++row)
             for (int col = 0; col < 4; ++col)
                 transform.matrix[row][col] = inst.transform[col][row];
-
         vkInstances[i].transform = transform;
         vkInstances[i].instanceCustomIndex = inst.instanceCustomIndex;
         vkInstances[i].mask = inst.mask;
         vkInstances[i].instanceShaderBindingTableRecordOffset = 0;
         vkInstances[i].flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
         vkInstances[i].accelerationStructureReference = inst.blasAddress;
-
         instanceAddresses[i].vertexBufferAddress = inst.vertexBufferAddress;
         instanceAddresses[i].indexBufferAddress = inst.indexBufferAddress;
         instanceAddresses[i].materialIndex = inst.materialIndex;
@@ -1031,39 +1062,71 @@ void VulkanRenderer::updateTLAS(const std::vector<RTInstanceData>& instances) {
 
     VkDeviceSize bufferSize = sizeof(VkAccelerationStructureInstanceKHR) * vkInstances.size();
 
-    VulkanBuffer stagingBuffer(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
-    stagingBuffer.create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    stagingBuffer.setData(vkInstances.data(), bufferSize);
+    m_tlasInstanceStagingBuffers[m_currentFrame] = std::make_unique<VulkanBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
+    m_tlasInstanceStagingBuffers[m_currentFrame]->create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    m_tlasInstanceStagingBuffers[m_currentFrame]->setData(vkInstances.data(), bufferSize);
 
-    auto instanceBuffer = std::make_unique<VulkanBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
-    instanceBuffer->create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    m_tlasInstanceBuffers[m_currentFrame] = std::make_unique<VulkanBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
+    m_tlasInstanceBuffers[m_currentFrame]->create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    VulkanCommands::copyBuffer(m_vulkanDevice->getDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), stagingBuffer.getBuffer(), instanceBuffer->getBuffer(), bufferSize);
+    VkBufferCopy copyRegion{};
+    copyRegion.size = bufferSize;
+    vkCmdCopyBuffer(commandBuffer, m_tlasInstanceStagingBuffers[m_currentFrame]->getBuffer(), m_tlasInstanceBuffers[m_currentFrame]->getBuffer(), 1, &copyRegion);
+
+    VkBufferMemoryBarrier copyBarrier{};
+    copyBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    copyBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    copyBarrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+    copyBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    copyBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    copyBarrier.buffer = m_tlasInstanceBuffers[m_currentFrame]->getBuffer();
+    copyBarrier.offset = 0;
+    copyBarrier.size = bufferSize;
+    vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 0, nullptr, 1, &copyBarrier, 0, nullptr);
 
     m_tlas[m_currentFrame] = std::make_unique<VulkanAccelerationStructure>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
+    m_tlasScratchBuffers[m_currentFrame] = std::make_unique<VulkanBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
 
-    m_tlas[m_currentFrame]->buildTLAS(m_commandPool, m_vulkanDevice->getGraphicsQueue(), *instanceBuffer, static_cast<uint32_t>(vkInstances.size()), false);
+    m_tlas[m_currentFrame]->buildTLAS(commandBuffer, *m_tlasInstanceBuffers[m_currentFrame], *m_tlasScratchBuffers[m_currentFrame], static_cast<uint32_t>(vkInstances.size()), false);
+
+    VkMemoryBarrier tlasBarrier{};
+    tlasBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+    tlasBarrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+    tlasBarrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+    vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR, 0, 1, &tlasBarrier, 0, nullptr, 0, nullptr);
 
     VkDeviceSize addrBufferSize = sizeof(InstanceAddresses) * instanceAddresses.size();
-    VulkanBuffer addrStagingBuffer(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
-    addrStagingBuffer.create(addrBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    addrStagingBuffer.setData(instanceAddresses.data(), addrBufferSize);
+
+    m_instanceAddressStagingBuffers[m_currentFrame] = std::make_unique<VulkanBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
+    m_instanceAddressStagingBuffers[m_currentFrame]->create(addrBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    m_instanceAddressStagingBuffers[m_currentFrame]->setData(instanceAddresses.data(), addrBufferSize);
 
     m_instanceAddressesBuffers[m_currentFrame] = std::make_unique<VulkanBuffer>(m_vulkanDevice->getDevice(), m_vulkanDevice->getPhysicalDevice());
     m_instanceAddressesBuffers[m_currentFrame]->create(addrBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    VulkanCommands::copyBuffer(m_vulkanDevice->getDevice(), m_commandPool, m_vulkanDevice->getGraphicsQueue(), addrStagingBuffer.getBuffer(), m_instanceAddressesBuffers[m_currentFrame]->getBuffer(), addrBufferSize);
-    // instanceBuffer can be released after the build completes — the AS build reads it
-    // synchronously within this function via the single-time command submission, so it's
-    // safe to let this unique_ptr go out of scope here.
+
+    VkBufferCopy addrCopyRegion{};
+    addrCopyRegion.size = addrBufferSize;
+    vkCmdCopyBuffer(commandBuffer, m_instanceAddressStagingBuffers[m_currentFrame]->getBuffer(), m_instanceAddressesBuffers[m_currentFrame]->getBuffer(), 1, &addrCopyRegion);
+
+    VkBufferMemoryBarrier addrBarrier{};
+    addrBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    addrBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    addrBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    addrBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    addrBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    addrBarrier.buffer = m_instanceAddressesBuffers[m_currentFrame]->getBuffer();
+    addrBarrier.offset = 0;
+    addrBarrier.size = addrBufferSize;
+    vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR, 0, 0, nullptr, 1, &addrBarrier, 0, nullptr);
 }
 
 void VulkanRenderer::updateRTOutputBindingFor3D() {
     if (!m_vulkanDevice->hasRTSupport()) return;
 
     VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // matches the post-trace transition
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfo.imageView = m_rtOutputImageView;
-    imageInfo.sampler = m_rtOutputSampler; // see note below
+    imageInfo.sampler = m_rtOutputSampler;
 
     VkWriteDescriptorSet write{};
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
