@@ -14,6 +14,8 @@ enum class EventType {
     WindowFocus,
     WindowLostFocus,
     WindowMoved,
+    WindowFullscreenEvent,
+    WindowLeaveFullscreenEvent,
     AppTick,
     AppUpdate,
     AppRender,

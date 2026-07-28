@@ -3,6 +3,7 @@
 #include "Window.hpp"
 #include "core/Timestep.hpp"
 #include "core/io/ResourceLoader.hpp"
+#include "events/KeyEvent.hpp"
 #include "scene/Scene.hpp"
 #include "servers/rendering/RenderingServer.hpp"
 #include "FileSystem.hpp"
@@ -116,6 +117,15 @@ void Application::onEvent(Event& event) {
 	dispatcher.dispatch<VSyncEvent>(QI_BIND_EVENT_FN(Application::onVSync));
     dispatcher.dispatch<WindowMinimizedEvent>(QI_BIND_EVENT_FN(Application::onWindowMinimized));
     dispatcher.dispatch<WindowRestoredEvent>(QI_BIND_EVENT_FN(Application::onWindowRestored));
+
+    if (event.getEventType() == Qi::EventType::KeyPressed) {
+        Qi::KeyPressedEvent& e = static_cast<Qi::KeyPressedEvent&>(event);
+        if (e.getKeyCode() == Qi::Key::F11 && !e.isRepeat()) {
+            static bool isFullscreen = false;
+            isFullscreen = !isFullscreen;
+            m_window->setFullscreen(isFullscreen);
+        }
+    }
 
 	m_renderingServer->onEvent(event);
     m_sceneManager.onEvent(event);

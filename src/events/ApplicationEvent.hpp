@@ -50,6 +50,22 @@ public:
     QI_EVENT_CLASS_CATEGORY(eventCategoryApplication)
 };
 
+class WindowFullscreenEvent : public Event {
+public:
+    WindowFullscreenEvent() = default;
+    std::string toString() const override { return "WindowFullscreenEvent"; }
+    QI_EVENT_CLASS_TYPE(WindowFullscreenEvent)
+    QI_EVENT_CLASS_CATEGORY(eventCategoryApplication)
+};
+
+class WindowLeaveFullscreenEvent : public Event {
+public:
+    WindowLeaveFullscreenEvent() = default;
+    std::string toString() const override { return "WindowLeaveFullscreenEvent"; }
+    QI_EVENT_CLASS_TYPE(WindowLeaveFullscreenEvent)
+    QI_EVENT_CLASS_CATEGORY(eventCategoryApplication)
+};
+
 class AppTickEvent : public Event {
 public:
     AppTickEvent() = default;
