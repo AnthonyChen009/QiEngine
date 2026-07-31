@@ -75,6 +75,10 @@ void WindowsWindow::setRawEventCallback(const RawEventCallback& callback) {
     m_rawEventCallback = callback;
 }
 
+void WindowsWindow::setFullscreen(bool fullscreen) {
+    SDL_SetWindowFullscreen(m_window, fullscreen);
+}
+
 void WindowsWindow::onUpdate() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -136,6 +140,16 @@ void WindowsWindow::onUpdate() {
             }
             case SDL_EVENT_WINDOW_RESTORED: {
                 WindowRestoredEvent event;
+                if (m_data.eventCallback) m_data.eventCallback(event);
+                break;
+            }
+            case SDL_EVENT_WINDOW_ENTER_FULLSCREEN: {
+                WindowFullscreenEvent event;
+                if (m_data.eventCallback) m_data.eventCallback(event);
+                break;
+            }
+            case SDL_EVENT_WINDOW_LEAVE_FULLSCREEN: {
+                WindowLeaveFullscreenEvent event;
                 if (m_data.eventCallback) m_data.eventCallback(event);
                 break;
             }
