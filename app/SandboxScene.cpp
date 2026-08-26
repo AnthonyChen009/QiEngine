@@ -153,9 +153,9 @@ void SandboxScene::onReady() {
 
     setActiveCamera(*m_camera);
 
-    // m_directionLight = QiNew<Qi::Node3D>();
-    // addNode(m_directionLight);
-    // m_directionLight->addComponent<Qi::DirectionalLightComponent>();
+    m_directionLight = QiNew<Qi::Node3D>();
+    addNode(m_directionLight);
+    m_directionLight->addComponent<Qi::DirectionalLightComponent>();
 }
 
 void SandboxScene::onUpdate(Qi::Timestep ts) {
