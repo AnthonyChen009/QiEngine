@@ -32,6 +32,7 @@ struct TransformComponent {
 
     glm::vec2 worldPosition = { 0.0f, 0.0f };
     float worldRotation = 0.0f;
+    bool isDirty = true;
 };
 
 struct Rigidbody2DComponent {

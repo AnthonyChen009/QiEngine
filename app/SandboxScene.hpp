@@ -25,6 +25,6 @@ private:
 
     CameraController* m_camera;
     Qi::Node3D* m_directionLight;
-
+    float m_turntableAngle = 0.0f;
 
 };

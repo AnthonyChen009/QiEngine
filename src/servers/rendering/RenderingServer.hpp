@@ -46,6 +46,7 @@ private:
     bool m_useFullRT = false;
     bool m_useHybridRT = false;
     uint32_t m_frameCounter = 0;
+    uint32_t m_prevInstanceSize = 0;
 };
 
 }

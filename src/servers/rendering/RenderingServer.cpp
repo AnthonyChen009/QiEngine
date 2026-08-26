@@ -83,6 +83,7 @@ void RenderingServer::render3D(Scene& scene) {
     ubo.proj[1][1] *= -1;
     //fix accumulation buffer when instance size changes or an object has moved
     if (m_renderer->getBackend()->hasRTSupport() && m_useHybridRT) {
+        bool needsUpdate = false;
         std::vector<RTInstanceData> instances;
         auto rtView = scene.getRegistry().view<Transform3DComponent, MeshComponent>();
 
@@ -99,15 +100,23 @@ void RenderingServer::render3D(Scene& scene) {
             instance.indexBufferAddress = static_cast<const VulkanIndexBuffer&>(meshComp.mesh->getIndexBuffer()).getVulkanBuffer().getDeviceAddress();
             instance.materialIndex = meshComp.material ? meshComp.material->getIndex() : 0;
             instances.push_back(instance);
+            if (transformComp.isDirty) {
+                needsUpdate = true;
+            }
+            transformComp.isDirty = false;
         }
         m_renderer->getBackend()->updateTLAS(instances);
+        if (instances.size() != m_prevInstanceSize) {
+            needsUpdate = true;
+        }
+        m_prevInstanceSize = instances.size();
 
         if (!instances.empty()) {
             RTCameraUBO rtUBO{};
             rtUBO.invView = glm::inverse(ubo.view);
             rtUBO.invProj = glm::inverse(ubo.proj);
             rtUBO.frameIndex = m_frameCounter++;
-            m_renderer->getBackend()->updateUniformBufferRT(rtUBO, false); //TODO update
+            m_renderer->getBackend()->updateUniformBufferRT(rtUBO, needsUpdate); //TODO update
             m_renderer->getBackend()->updateRTDescriptorSet();
             m_renderer->getBackend()->dispatchRayTracing();
         }

@@ -160,8 +160,8 @@ void SandboxScene::onReady() {
 
 void SandboxScene::onUpdate(Qi::Timestep ts) {
     Qi::Scene::onUpdate(ts);
-    //m_turntableAngle += glm::radians(45.0f) * ts.getSeconds();
-    //m_testNode2->setRotation(glm::angleAxis(m_turntableAngle, glm::vec3(0, 1, 0)));
+    m_turntableAngle += glm::radians(45.0f) * ts.getSeconds();
+    displayMesh->setRotation(glm::angleAxis(m_turntableAngle, glm::vec3(0, 1, 0)));
 }
 
 void SandboxScene::onEvent(Qi::Event& event) {
