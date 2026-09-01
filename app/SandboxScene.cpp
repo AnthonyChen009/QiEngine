@@ -18,10 +18,11 @@
 #include "QiEngine.hpp"
 #include <glm/ext/vector_float2.hpp>
 #include <memory>
+#include "core/api/Resources.hpp"
 
 void SandboxScene::onReady() {
 
-    std::shared_ptr<Qi::Material> greenWallMaterial = Qi::Application::get().getResourceLoader().Create<Qi::Material>(
+    std::shared_ptr<Qi::Material> greenWallMaterial = Qi::Resources::Create<Qi::Material>(
         Qi::MaterialParameters{
             .albedo = glm::vec3(0.0510f, 0.6510f, 0.0941f),
             .roughness = 0.958f,
@@ -37,7 +38,7 @@ void SandboxScene::onReady() {
         ""
     );
 
-    std::shared_ptr<Qi::Material> blueWallMaterial = Qi::Application::get().getResourceLoader().Create<Qi::Material>(
+    std::shared_ptr<Qi::Material> blueWallMaterial = Qi::Resources::Create<Qi::Material>(
         Qi::MaterialParameters{
             .albedo = glm::vec3(0.1490f, 0.3882f, 0.7647f),
             .roughness = 0.967f,
@@ -53,7 +54,7 @@ void SandboxScene::onReady() {
         ""
     );
 
-    std::shared_ptr<Qi::Material> redWallMaterial = Qi::Application::get().getResourceLoader().Create<Qi::Material>(
+    std::shared_ptr<Qi::Material> redWallMaterial = Qi::Resources::Create<Qi::Material>(
         Qi::MaterialParameters{
             .albedo = glm::vec3(0.8000f, 0.1765f, 0.1490f),
             .roughness = 0.985f,
@@ -69,7 +70,7 @@ void SandboxScene::onReady() {
         ""
     );
 
-    std::shared_ptr<Qi::Material> lightMaterial = Qi::Application::get().getResourceLoader().Create<Qi::Material>(
+    std::shared_ptr<Qi::Material> lightMaterial = Qi::Resources::Create<Qi::Material>(
         Qi::MaterialParameters{
             .albedo = glm::vec3(1.0f, 1.0f, 1.0f),
             .roughness = 0.0f,
@@ -85,7 +86,7 @@ void SandboxScene::onReady() {
         ""
     );
 
-    std::shared_ptr<Qi::Material> cubeMaterial = Qi::Application::get().getResourceLoader().Create<Qi::Material>(
+    std::shared_ptr<Qi::Material> cubeMaterial = Qi::Resources::Create<Qi::Material>(
         Qi::MaterialParameters{
 
         },
@@ -133,8 +134,8 @@ void SandboxScene::onReady() {
 
     displayMesh = QiNew<Qi::MeshInstance3D>();
     addNode(displayMesh);
-    displayMesh->setMesh(Qi::MeshPrimitives::BoxMesh());
-    displayMesh->setScale({1.5f, 1.5f, 1.5f});
+    displayMesh->setMesh(Qi::Resources::Load<Qi::Mesh>("models/Chicken.obj"));
+    displayMesh->setScale({2.5f, 2.5f, 2.5f});
     displayMesh->setPosition({0.0f, -1.766f, 0.0f});
     displayMesh->setRotationEuler({0.0f, 45.0f, 0.0f});
     displayMesh->setMaterial(cubeMaterial);
@@ -160,8 +161,8 @@ void SandboxScene::onReady() {
 
 void SandboxScene::onUpdate(Qi::Timestep ts) {
     Qi::Scene::onUpdate(ts);
-    m_turntableAngle += glm::radians(45.0f) * ts.getSeconds();
-    displayMesh->setRotation(glm::angleAxis(m_turntableAngle, glm::vec3(0, 1, 0)));
+    //m_turntableAngle += glm::radians(45.0f) * ts.getSeconds();
+    //displayMesh->setRotation(glm::angleAxis(m_turntableAngle, glm::vec3(0, 1, 0)));
 }
 
 void SandboxScene::onEvent(Qi::Event& event) {
