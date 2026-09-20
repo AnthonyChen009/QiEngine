@@ -1,12 +1,14 @@
 #pragma once
 
 #include "core/Base.hpp"
+#include "renderer/Material.hpp"
 #include "renderer/Renderer.hpp"
 #include "renderer/Renderer2D.hpp"
 #include "ImGuiLayer.hpp"
 #include "renderer/Renderer3D.hpp"
 #include "renderer/vulkan/Texture2D.hpp"
 #include "scene/Scene.hpp"
+#include <cstdint>
 #include <memory>
 #include "renderer/vulkan/Mesh.hpp"
 #include "PrimitiveMeshLibrary.hpp"
@@ -26,11 +28,11 @@ public:
     void setVSync(bool enabled);
     void onEvent(Qi::Event& event);
     std::shared_ptr<Texture2D> createTexture2D(const std::string& path);
-    std::shared_ptr<Mesh> createMesh(const std::string& path);
     std::shared_ptr<Mesh> createMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
     ImGuiLayer& getImGuiLayer();
     PrimitiveMeshLibrary& getPrimitives();
     void waitIdle();
+    std::shared_ptr<Material> createMaterial(const MaterialParameters& params, const std::string& path);
 private:
     void render2D(Scene& scene);
     void render3D(Scene& scene);
@@ -41,6 +43,10 @@ private:
     Scope<ImGuiLayer> m_imGuiLayer;
     PrimitiveMeshLibrary m_primitives{*this};
     bool m_warnedNoCamera = false;
+    bool m_useFullRT = false;
+    bool m_useHybridRT = false;
+    uint32_t m_frameCounter = 0;
+    uint32_t m_prevInstanceSize = 0;
 };
 
 }

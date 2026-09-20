@@ -14,6 +14,8 @@ enum class EventType {
     WindowFocus,
     WindowLostFocus,
     WindowMoved,
+    WindowFullscreenEvent,
+    WindowLeaveFullscreenEvent,
     AppTick,
     AppUpdate,
     AppRender,
@@ -25,6 +27,8 @@ enum class EventType {
     MouseMoved,
     MouseScrolled,
     VSync,
+    UseFullRt,
+    UseRt,
 };
 
 enum EventCategory {

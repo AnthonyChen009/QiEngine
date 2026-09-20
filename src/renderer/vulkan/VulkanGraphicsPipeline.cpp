@@ -7,7 +7,6 @@
 #include <vulkan/vulkan_core.h>
 
 namespace Qi {
-
 VulkanGraphicsPipeline::VulkanGraphicsPipeline(VkDevice device, VkRenderPass renderPass, VulkanUtils::PipelineType type) : m_device(device), m_type(type) {
     createDescriptorSetLayout();
     createGraphicsPipeline(renderPass);
@@ -56,13 +55,43 @@ void VulkanGraphicsPipeline::createDescriptorSetLayout() {
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
 
-    std::array<VkDescriptorBindingFlags, 2> bindingFlags = {
+    VkDescriptorSetLayoutBinding rtOutputBinding{};
+    rtOutputBinding.binding = 2;
+    rtOutputBinding.descriptorCount = 1;
+    rtOutputBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    rtOutputBinding.pImmutableSamplers = nullptr;
+    rtOutputBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding, samplerLayoutBinding };
+    std::vector<VkDescriptorBindingFlags> bindingFlags = {
         0,
-        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-        VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
     };
+
+    if (m_type == VulkanUtils::PipelineType::Pipeline3D) {
+        bindings.push_back(rtOutputBinding);
+        bindingFlags.push_back(0);
+    }
+    else if (m_type == VulkanUtils::PipelineType::PipelineRTDisplay) {
+        VkDescriptorSetLayoutBinding rtOutputBinding{};
+        rtOutputBinding.binding = 0;
+        rtOutputBinding.descriptorCount = 1;
+        rtOutputBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        rtOutputBinding.pImmutableSamplers = nullptr;
+        rtOutputBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        std::array<VkDescriptorSetLayoutBinding, 1> bindings = { rtOutputBinding };
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
+
+        VkResult result = vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout);
+        QI_RENDERER_ASSERT(result == VK_SUCCESS, "Failed to create descriptor set layout!");
+        return;
+    }
 
     VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{};
     flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
@@ -89,6 +118,10 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
     else if (m_type == VulkanUtils::PipelineType::Pipeline3D){
         vertShaderCode = FileSystem::readBinaryFile("shaders/vert3D.spv");
         fragShaderCode = FileSystem::readBinaryFile("shaders/frag3D.spv");
+    }
+    else if (m_type == VulkanUtils::PipelineType::PipelineRTDisplay) {
+        vertShaderCode = FileSystem::readBinaryFile("shaders/RT/rtDisplayVert.spv");
+        fragShaderCode = FileSystem::readBinaryFile("shaders/RT/rtDisplayFrag.spv");
     }
     else {
         vertShaderCode = FileSystem::readBinaryFile("shaders/vertSky.spv");
@@ -136,7 +169,7 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    if (m_type == VulkanUtils::PipelineType::PipelineSky) {
+    if (m_type == VulkanUtils::PipelineType::PipelineSky || m_type == VulkanUtils::PipelineType::PipelineRTDisplay) {
         vertexInputInfo.vertexBindingDescriptionCount = 0;
         vertexInputInfo.pVertexBindingDescriptions = nullptr;
         vertexInputInfo.vertexAttributeDescriptionCount = 0;
@@ -159,13 +192,15 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
     viewportState.viewportCount = 1;
     viewportState.scissorCount = 1;
 
+    bool isFullscreenPass = (m_type == VulkanUtils::PipelineType::PipelineSky || m_type == VulkanUtils::PipelineType::PipelineRTDisplay);
+
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rasterizer.depthClampEnable = VK_FALSE;
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = (m_type == VulkanUtils::PipelineType::PipelineSky) ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;
+    rasterizer.cullMode = (isFullscreenPass) ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -176,8 +211,8 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencil.depthTestEnable = (m_type == VulkanUtils::PipelineType::PipelineSky) ? VK_FALSE : VK_TRUE;
-    depthStencil.depthWriteEnable = (m_type == VulkanUtils::PipelineType::PipelineSky) ? VK_FALSE : VK_TRUE;
+    depthStencil.depthTestEnable = (isFullscreenPass) ? VK_FALSE : VK_TRUE;
+    depthStencil.depthWriteEnable = (isFullscreenPass) ? VK_FALSE : VK_TRUE;
     depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.minDepthBounds = 0.0f;
@@ -193,7 +228,7 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VkRenderPass renderPass) {
         VK_COLOR_COMPONENT_B_BIT |
         VK_COLOR_COMPONENT_A_BIT;
 
-    if (m_type != VulkanUtils::PipelineType::PipelineSky) {
+    if (m_type != VulkanUtils::PipelineType::PipelineSky && m_type != VulkanUtils::PipelineType::PipelineRTDisplay) {
         colorBlendAttachment.blendEnable = VK_TRUE;
         colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;

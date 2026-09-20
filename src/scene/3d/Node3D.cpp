@@ -25,6 +25,7 @@ void Node3D::onEvent(Event& event) {
 
 void Node3D::setPosition(const glm::vec3& position) {
     getComponent<Transform3DComponent>().position = position;
+    getComponent<Transform3DComponent>().isDirty = true;
 }
 
 const glm::vec3& Node3D::getPosition() const {
@@ -33,6 +34,7 @@ const glm::vec3& Node3D::getPosition() const {
 
 void Node3D::setRotation(const glm::quat& rotation) {
     getComponent<Transform3DComponent>().rotation = rotation;
+    getComponent<Transform3DComponent>().isDirty = true;
 }
 
 const glm::quat& Node3D::getRotation() const {
@@ -41,6 +43,7 @@ const glm::quat& Node3D::getRotation() const {
 
 void Node3D::setRotationEuler(const glm::vec3& rotation) {
     getComponent<Transform3DComponent>().rotation = glm::quat(glm::radians(rotation));
+    getComponent<Transform3DComponent>().isDirty = true;
 }
 
 glm::vec3 Node3D::getRotationEuler() const {
@@ -49,6 +52,7 @@ glm::vec3 Node3D::getRotationEuler() const {
 
 void Node3D::setScale(const glm::vec3& scale) {
     getComponent<Transform3DComponent>().scale = scale;
+    getComponent<Transform3DComponent>().isDirty = true;
 }
 
 const glm::vec3& Node3D::getScale() const {

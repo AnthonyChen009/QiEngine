@@ -43,5 +43,6 @@ namespace Qi {
 		static Scope<Window> create(const WindowProps& props = WindowProps());
 
 		virtual void setRawEventCallback(const RawEventCallback& callback) = 0;
+		virtual void setFullscreen(bool fullscreen) = 0;
     };
 }

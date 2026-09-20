@@ -31,7 +31,7 @@ void Renderer2D::endScene() {
 
 }
 
-void Renderer2D::drawTexturedQuad(glm::vec2 position, glm::vec2 size, float rotation, glm::vec4 color, Texture2D* texture) {
+void Renderer2D::drawTexturedQuad(glm::vec2 position, glm::vec2 size, float rotation, glm::vec4 color, std::shared_ptr<Texture2D>& texture) {
     m_renderer.getBackend()->bindBuffers(m_quad->getVertexBuffer(), m_quad->getIndexBuffer());
     PushConstant push{};
     push.transform = glm::translate(glm::mat4(1.0f), glm::vec3(position, 0.0f))

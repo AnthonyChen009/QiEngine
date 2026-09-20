@@ -42,7 +42,7 @@ void InputServer::onEvent(Event& event) {
 bool InputServer::onKeyPressed(KeyPressedEvent& event) {
     KeyCode key = event.getKeyCode();
     m_currentKeys.insert(key);
-    if (!event.IsRepeat()) {
+    if (!event.isRepeat()) {
         m_justPressedKeys.insert(key);
     }
     return false;

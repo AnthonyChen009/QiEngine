@@ -1,7 +1,13 @@
 #pragma once
 #include "core/Window.hpp"
+#include "renderer/Material.hpp"
+#include "renderer/types/MaterialParameters.hpp"
+#include "renderer/types/RTCameraUBO.hpp"
+#include "renderer/types/RTInstanceData.hpp"
 #include "renderer/types/SkyUbo.hpp"
 #include "renderer/types/UniformBufferObject.hpp"
+#include "renderer/vulkan/VulkanAccelerationStructure.hpp"
+#include "renderer/vulkan/VulkanDevice.hpp"
 #include "renderer/vulkan/VulkanIndexBuffer.hpp"
 #include "renderer/vulkan/VulkanVertexBuffer.hpp"
 #include "types/PushConstants.hpp"
@@ -26,6 +32,7 @@ public:
     virtual void onVysncToggle(bool isVSync) {};
     virtual void updateUniformBuffer2D() = 0;
     virtual void updateUniformBuffer3D(UniformBufferObject& ubo) = 0;
+    virtual void updateUniformBufferRT(RTCameraUBO& ubo, bool needsUpdate) = 0;
     virtual void updateUniformBufferSky(SkyUniformBufferObject& ubo) = 0;
     virtual void pushConstants2D(const PushConstant& push) = 0;
     virtual void pushConstants3D(const PushConstant& push) = 0;
@@ -39,6 +46,18 @@ public:
     virtual void shutdownImGui() = 0;
     virtual void beginImGuiFrame() = 0;
     virtual void renderImGui() = 0;
+
+    virtual bool hasRTSupport() = 0;
+    virtual std::unique_ptr<VulkanAccelerationStructure> createBLAS(
+        const VertexBuffer& vertexBuffer, uint32_t vertexCount, size_t vertexStride,
+        const IndexBuffer& indexBuffer, uint32_t indexCount,
+        bool allowUpdate = false) = 0;
+    virtual void updateTLAS(const std::vector<RTInstanceData>& instances) = 0;
+    virtual void updateRTDescriptorSet() = 0;
+    virtual void dispatchRayTracing() = 0;
+    virtual void beginRenderPass() = 0;
+    virtual std::shared_ptr<Material> createMaterial(const MaterialParameters& params, const std::string& path) = 0;
+    virtual void uploadMaterialsIfDirty() = 0;
 };
 
 }

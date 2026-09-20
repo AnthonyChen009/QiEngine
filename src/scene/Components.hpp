@@ -2,6 +2,7 @@
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <string>
+#include "renderer/Material.hpp"
 #include "renderer/vulkan/Texture2D.hpp"
 #include <glm/gtc/quaternion.hpp>
 #include <memory>
@@ -31,6 +32,7 @@ struct TransformComponent {
 
     glm::vec2 worldPosition = { 0.0f, 0.0f };
     float worldRotation = 0.0f;
+    bool isDirty = true;
 };
 
 struct Rigidbody2DComponent {
@@ -43,7 +45,7 @@ struct Rigidbody3DComponent {
 
 struct SpriteComponent {
     glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
-    Texture2D* texture = nullptr;
+    std::shared_ptr<Texture2D> texture = nullptr;
 };
 
 struct Transform3DComponent {
@@ -60,6 +62,7 @@ struct Transform3DComponent {
             glm::mat4_cast(rotation) *
             glm::scale(glm::mat4(1.0f), scale);
     }
+    bool isDirty = true;
 };
 
 struct Camera3DComponent {
@@ -83,8 +86,8 @@ struct DirectionalLightComponent {
 
 struct MeshComponent {
     std::shared_ptr<Mesh> mesh;
-    Texture2D* albedoTexture = nullptr;
-    //scale here later maybe
+    std::shared_ptr<Texture2D> albedoTexture = nullptr;
+    std::shared_ptr<Material> material = nullptr;
 };
 
 }

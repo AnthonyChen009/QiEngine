@@ -13,7 +13,7 @@ class Renderer2D {
 public:
     Renderer2D(Renderer& renderer, std::shared_ptr<Mesh> quad);
     void drawQuad(glm::vec2 position, glm::vec2 size, float rotation, glm::vec4 color);
-    void drawTexturedQuad(glm::vec2 position, glm::vec2 size, float rotation, glm::vec4 color, Texture2D* texture);
+    void drawTexturedQuad(glm::vec2 position, glm::vec2 size, float rotation, glm::vec4 color, std::shared_ptr<Texture2D>& texture);
     std::shared_ptr<Texture2D> loadTexture(const std::string& path);
     void beginScene();
     void endScene();

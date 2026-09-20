@@ -8,13 +8,13 @@ namespace Qi {
 
 class VulkanIndexBuffer : public IndexBuffer {
 public:
-    VulkanIndexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue, const std::vector<uint32_t>& indices);
+    VulkanIndexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue, const std::vector<uint32_t>& indices, bool rtEnabled);
     ~VulkanIndexBuffer() override;
 
     void bind(CommandBufferHandle commandBuffer) const override;
     uint32_t getCount() const override { return m_count; }
     bool isBufferValid() const override;
-
+    const VulkanBuffer& getVulkanBuffer() const { return m_buffer; }
 private:
     VulkanBuffer m_buffer;
     uint32_t m_count = 0;

@@ -2,6 +2,7 @@
 
 #include "core/Application.hpp"
 #include "core/Log.hpp"
+#include "events/RenderingEvents.hpp"
 #include "imgui.h"
 #include "core/api/Input.hpp"
 
@@ -112,12 +113,29 @@ void ImGuiLayer::render(Timestep ts) {
 
     if (ImGui::CollapsingHeader("Window")) {
         static bool vsync = false;
+        static bool useHybridRT = false;
+        static bool useFullRT = false;
 
         ImGui::Text("API: Vulkan");
         ImGui::Text("Resolution: 1280 x 720");
         if (ImGui::Checkbox("VSync", &vsync)) {
-            Qi::VSyncEvent event(vsync);
-            Qi::Application::get().onEvent(event);
+            VSyncEvent event(vsync);
+            Application::get().onEvent(event);
+        }
+
+        if (ImGui::Checkbox("Use Hybrid RayTracing", &useHybridRT)) {
+            UseRtEvent event(useHybridRT);
+            Application::get().onEvent(event);
+            if (!useHybridRT && useFullRT) {
+                useFullRT = false;
+                UseFullRtEvent fullRtEvent(false);
+                Application::get().onEvent(fullRtEvent);
+            }
+        }
+
+        if (useHybridRT && ImGui::Checkbox("Use Full RayTracing", &useFullRT)) {
+            UseFullRtEvent event(useFullRT);
+            Application::get().onEvent(event);
         }
     }
 
@@ -147,7 +165,6 @@ void ImGuiLayer::render(Timestep ts) {
 }
 
 void ImGuiLayer::onEvent(Event& event) {
-
     if (m_blockEvents) {
         ImGuiIO& io = ImGui::GetIO();
         event.handled |= event.isInCategory(eventCategoryMouse) & io.WantCaptureMouse;

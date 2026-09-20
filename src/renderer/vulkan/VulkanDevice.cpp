@@ -40,6 +40,43 @@ void VulkanDevice::pickPhysicalDevice() {
 
     QI_RENDERER_ASSERT(bestDevice != VK_NULL_HANDLE && bestScore > 0, "Failed to find suitable GPU!");
     m_physicalDevice = bestDevice;
+
+    m_rtSupported = checkRayTracingSupport(m_physicalDevice);
+    QI_CORE_INFO(m_rtSupported ? "Ray tracing supported on selected GPU" : "Ray tracing NOT supported on selected GPU — RT pipeline disabled");
+}
+
+bool VulkanDevice::checkRayTracingSupport(VkPhysicalDevice device) {
+    uint32_t extCount = 0;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extCount, nullptr);
+    std::vector<VkExtensionProperties> available(extCount);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extCount, available.data());
+
+    for (const char* required : m_rtDeviceExtensions) {
+        bool found = std::any_of(available.begin(), available.end(),
+            [&](const VkExtensionProperties& ext) {
+                return strcmp(ext.extensionName, required) == 0;
+            });
+        if (!found) return false;
+    }
+
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeatures{};
+    rtPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR asFeatures{};
+    asFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    asFeatures.pNext = &rtPipelineFeatures;
+
+    VkPhysicalDeviceBufferDeviceAddressFeatures bdaFeatures{};
+    bdaFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+    bdaFeatures.pNext = &asFeatures;
+
+    VkPhysicalDeviceFeatures2 features2{};
+    features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    features2.pNext = &bdaFeatures;
+
+    vkGetPhysicalDeviceFeatures2(device, &features2);
+
+    return rtPipelineFeatures.rayTracingPipeline && asFeatures.accelerationStructure && bdaFeatures.bufferDeviceAddress;
 }
 
 void VulkanDevice::createLogicalDevice() {
@@ -63,6 +100,11 @@ void VulkanDevice::createLogicalDevice() {
 
     VkPhysicalDeviceFeatures deviceFeatures{};
     deviceFeatures.samplerAnisotropy = VK_TRUE;
+    deviceFeatures.shaderInt64 = VK_TRUE;
+
+    VkPhysicalDeviceScalarBlockLayoutFeatures scalarBlockLayoutFeatures{};
+    scalarBlockLayoutFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES;
+    scalarBlockLayoutFeatures.scalarBlockLayout = VK_TRUE;
 
     VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
     indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
@@ -70,14 +112,36 @@ void VulkanDevice::createLogicalDevice() {
     indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
     indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 
+    //rt
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeatures{};
+    rtPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+    rtPipelineFeatures.rayTracingPipeline = VK_TRUE;
+
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR asFeatures{};
+    asFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    asFeatures.accelerationStructure = VK_TRUE;
+
+    VkPhysicalDeviceBufferDeviceAddressFeatures bdaFeatures{};
+    bdaFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+    bdaFeatures.bufferDeviceAddress = VK_TRUE;
+
+    std::vector<const char*> enabledExtensions = m_deviceExtensions;
+    if (m_rtSupported) {
+        enabledExtensions.insert(enabledExtensions.end(), m_rtDeviceExtensions.begin(), m_rtDeviceExtensions.end());
+        bdaFeatures.pNext = &asFeatures;
+        asFeatures.pNext = &rtPipelineFeatures;
+        scalarBlockLayoutFeatures.pNext = &bdaFeatures;
+        indexingFeatures.pNext = &scalarBlockLayoutFeatures;
+    }
+
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     createInfo.pNext = &indexingFeatures; // chain it
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pEnabledFeatures = &deviceFeatures;
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
-    createInfo.ppEnabledExtensionNames = m_deviceExtensions.data();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(enabledExtensions.size());
+    createInfo.ppEnabledExtensionNames = enabledExtensions.data();
 
     if constexpr (VulkanUtils::enableValidationLayers) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(VulkanUtils::validationLayers.size());
